@@ -93,6 +93,10 @@ h1{margin:0;max-width:680px;font-size:clamp(38px,5vw,76px);font-weight:900;line-
 .card-label{position:absolute;left:14px;top:14px;padding:6px 9px;border-radius:999px;background:var(--pink-soft);color:var(--teal-dark);font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase}
 .card-body{padding:17px 17px 18px}
 .card-brand{color:var(--teal);font-size:10px;font-weight:900;letter-spacing:.14em;text-transform:uppercase}
+/* Sucursal a la que aplica el destacado / la oferta: una promoción puede ser de
+   un solo local. Va en la esquina superior derecha, espejo de la etiqueta de
+   segmento, que está arriba a la izquierda. */
+.card-branches{position:absolute;right:14px;top:14px;z-index:2;padding:6px 11px;border-radius:999px;background:#550000;color:#fff;font-size:10px;font-weight:900;letter-spacing:.07em;text-transform:uppercase;white-space:nowrap}
 .card-body h3{color:var(--wine-deep);font-size:16px;font-weight:700;line-height:1.2;margin:7px 0 10px}
 /* ===== NOMBRES DE PRODUCTO EN MAYÚSCULAS =====
    Es un cambio SOLO visual (text-transform), no se modifica el dato "p.name".
@@ -127,6 +131,13 @@ h1{margin:0;max-width:680px;font-size:clamp(38px,5vw,76px);font-weight:900;line-
 .routine-card:after{content:"";width:130px;height:130px;position:absolute;right:-50px;top:-50px;border-radius:50%;background:var(--pink-deep);opacity:.55}
 .routine-card h3{position:relative;z-index:1;margin:0 0 17px;color:var(--wine);font-size:19px;font-weight:900}
 .routine-card ol{position:relative;z-index:1;margin:0;padding-left:20px;color:#7a5f5b;font-size:13px;line-height:1.9}
+.routine-intro{position:relative;z-index:1;margin:-9px 0 14px;color:var(--muted);font-size:12.5px;line-height:1.6;font-style:italic}
+.routine-card li{margin-top:12px}
+.routine-card li:first-child{margin-top:0}
+.routine-card li span{display:block;color:var(--teal);font-size:9.5px;font-weight:900;letter-spacing:.12em;text-transform:uppercase}
+.routine-card li strong{display:block;color:var(--wine);font-size:13.5px;font-weight:800;line-height:1.35}
+.routine-card li small{display:block;color:var(--muted);font-size:11px;margin-top:1px}
+.routine-card li p{margin:2px 0 0;color:#7a5f5b;font-size:12.5px;line-height:1.5}
 
 /* ===== CONTACTO ===== */
 .contact{margin-top:80px}
@@ -531,11 +542,10 @@ body.visual-edit-mode .visual-edit-exit{display:block}
     <div class="section-heading">
       <div><div class="kicker">Orientación de rutina</div><h2>Rituales dermatológicos</h2></div>
     </div>
-    <div class="routine-grid">
-      <article class="routine-card"><h3>Piel grasa con imperfecciones</h3><ol><li>Cleanance Gel</li><li>Cleanance Comedomed</li><li>Fluido Anti-Imperfecciones SPF50+</li></ol></article>
-      <article class="routine-card"><h3>Piel sensible y reactiva</h3><ol><li>Tolérance Loción</li><li>Tolérance Control</li><li>Hydrance UV SPF30 por la mañana</li></ol></article>
-      <article class="routine-card"><h3>Anti-edad y luminosidad</h3><ol><li>Limpieza suave</li><li>Vitamin Activ Cg por la mañana</li><li>Hyaluron Activ B3 por la noche</li></ol></article>
-    </div>
+    <!-- Los consejos de abajo los genera el JavaScript con productos reales del
+         catálogo (solo de las marcas que hay en existencia) y se renuevan en
+         cada visita: ver RITUALES y renderRoutines(). -->
+    <div class="routine-grid" id="routineGrid"></div>
   </section>
 
   <!-- ===== INFORMACIÓN DE CONTACTO ===== -->
@@ -4617,11 +4627,27 @@ function selectSize(p,size){
   if(modalProduct===p&&document.getElementById("modalBackdrop").classList.contains("open"))openModal(p,true);
 }
 let modalProduct=null;
-function makeCard(item,presentation=null){
+/* Sucursales donde el producto tiene la marca pedida. Una promoción puede ser de
+   un solo local, así que en destacados y ofertas se indica a cuál aplica. */
+function branchesForFlag(p,field){
+  const out=[];
+  Object.keys(branchInventory).forEach(b=>{
+    const rows=branchInventory[b]||{};
+    if(rows[pkey(p)]?.[field]===true||rows[ikey(p)]?.[field]===true
+      ||(FLAG_PREFIX_INDEX[b]&&FLAG_PREFIX_INDEX[b][field]&&FLAG_PREFIX_INDEX[b][field].has(pkey(p))))out.push(b);
+  });
+  return out;
+}
+function branchFlagHTML(p,field){
+  const sucursales=branchesForFlag(p,field);
+  if(!sucursales.length)return "";
+  return `<div class="card-branches">${escapeHTML(sucursales.join(" · "))}</div>`;
+}
+function makeCard(item,presentation=null,extra=null){
   const key=presentation&&item.sizes&&item.sizes.length>1?pkey(item)+"|"+presentation:pkey(item);
   const d=invData(getBranch(),key),[st,sc]=stockInfo(d);
   const card=document.createElement("article");card.className="product-card";card.setAttribute("tabindex","0");
-  card.innerHTML=`<div class="card-visual"><div class="card-label">${escapeHTML(item.segments[0])}</div>${isOffer(d)?'<span class="new-badge offer">Oferta</span>':isNewSelected(item)?'<span class="new-badge">Nuevo</span>':""}<img alt="${escapeHTML(item.name)}"></div>
+  card.innerHTML=`<div class="card-visual"><div class="card-label">${escapeHTML(item.segments[0])}</div>${extra&&extra.flag?branchFlagHTML(item,extra.flag):""}${isOffer(d)?'<span class="new-badge offer">Oferta</span>':isNewSelected(item)?'<span class="new-badge">Nuevo</span>':""}<img alt="${escapeHTML(item.name)}"></div>
     <div class="card-body"><div class="card-brand">${escapeHTML(item.brand)}</div><h3>${escapeHTML(item.name)}</h3>
     ${sizeRowHTML(item,presentation)}
     <div class="stock ${sc}">● ${st}</div>
@@ -4726,7 +4752,7 @@ document.getElementById("visualProductForm").addEventListener("submit",async e=>
 });
 
 function presentationCount(list){return list.reduce((n,p)=>n+(p.sizes&&p.sizes.length>1?p.sizes.length:1),0);}
-function fillGrid(id,list,empty){const g=document.getElementById(id);g.innerHTML="";let count=0;list.forEach(i=>{if(i.sizes&&i.sizes.length>1)i.sizes.forEach(size=>{if(!isProductDeleted(i,size)&&(visualEditMode||!isProductHidden(i,size))){g.appendChild(makeCard(i,size));count++;}});else if(!isProductDeleted(i,null)&&(visualEditMode||!isProductHidden(i,null))){g.appendChild(makeCard(i,null));count++;}});if(!count)g.innerHTML=empty;}
+function fillGrid(id,list,empty,cardExtra=null){const g=document.getElementById(id);g.innerHTML="";let count=0;list.forEach(i=>{if(i.sizes&&i.sizes.length>1)i.sizes.forEach(size=>{if(!isProductDeleted(i,size)&&(visualEditMode||!isProductHidden(i,size))){g.appendChild(makeCard(i,size,cardExtra));count++;}});else if(!isProductDeleted(i,null)&&(visualEditMode||!isProductHidden(i,null))){g.appendChild(makeCard(i,null,cardExtra));count++;}});if(!count)g.innerHTML=empty;}
 function renderProducts(){
   const filtered=products.filter(p=>hasVisiblePresentation(p,visualEditMode)&&matchesProduct(p));
   document.getElementById("moduleTitle").textContent=state.brand==="Todas"?"Todas las marcas":state.brand;
@@ -4759,10 +4785,77 @@ function isOfferSelected(p){return selectedFlag(p,"is_offer");}
 function isNewSelected(p){
   return SUPPORTED_FLAGS.has("is_new")?selectedFlag(p,"is_new"):!!p.isNew;
 }
+/* ===== RITUALES DERMATOLÓGICOS =====
+   Cada tarjeta se arma con productos que existen realmente en el catálogo, así
+   que si incorporas o dejas de vender una marca los consejos se ajustan solos.
+   Además, en cada visita se eligen productos distintos al azar: dos clientes que
+   abran la página al mismo tiempo verán recomendaciones diferentes. */
+/* Cada paso define su segmento y las palabras que deben (o no) aparecer en el
+   nombre: así un "preparación" solar no acaba sugiriendo higiene íntima, ni una
+   crema CC aparece como limpiador. Los segmentos solos no bastan porque un
+   producto suele tener varios a la vez. */
+const PASO={
+  limpieza:{segmento:["Hidratación / limpieza","Acné / piel grasa"],incluye:/limpia|gel espum|gel limpi|espuma|micel|jab[oó]n|cleanser|mousse|exfoli|t[oó]nic/i,excluye:/[ií]ntim|pediatr|capilar|champ|shampoo|solar|spf|fps|contorno|anti.?manchas|antirojeces|manos|labial|peeling|ba[nñ]o|antiestr/i},
+  limpiezaSuave:{segmento:["Hidratación / limpieza","Piel sensible / atópica"],incluye:/limpia|gel|espuma|micel|jab[oó]n|cleanser|mousse/i,excluye:/[ií]ntim|pediatr|capilar|champ|shampoo|exfoli|peeling|solar|spf|fps|contorno|anti.?manchas|antirojeces|manos|labial|ba[nñ]o|antiestr/i},
+  antiedad:{segmento:["Anti-edad"],incluye:/s[eé]rum|serum|crema|tratamiento|emulsi[oó]n|contorno|ampolla|ampoll|gel|loci[oó]n/i,excluye:/limpi|micel|jab[oó]n|spf|fps|solar|champ|shampoo|[ií]ntim|manos|antiestr|ba[nñ]o|corporal/i},
+  acné:{segmento:["Acné / piel grasa"],incluye:/gel|crema|s[eé]rum|emulsi[oó]n|loci[oó]n|tratamiento|corrector|ampolla|peeling|stick/i,excluye:/limpi|micel|jab[oó]n|spf|fps|solar|champ|shampoo|[ií]ntim|manos|antiestr|ba[nñ]o|corporal/i},
+  manchas:{segmento:["Hiperpigmentación"],incluye:/mancha|claro|ilumin|vitamina c|arbutin|melan|despigment|radiance|clair|spot|equalan|c20/i,excluye:/limpi|micel|spf|fps|solar|champ|shampoo|[ií]ntim|manos|antiestr|ba[nñ]o|corporal/i},
+  sensible:{segmento:["Piel sensible / atópica"],incluye:/crema|gel|loci[oó]n|emulsi[oó]n|b[aá]lsamo|hidrat|reparador|calma|control|antirojeces|ros[eé]liane/i,excluye:/limpi|micel|jab[oó]n|spf|fps|solar|champ|shampoo|[ií]ntim|contorno|manos|antiestr|ba[nñ]o|corporal/i},
+  hidratacion:{segmento:["Piel sensible / atópica","Hidratación / limpieza"],incluye:/crema|loci[oó]n|emulsi[oó]n|b[aá]lsamo|hidrat|acondicion|nutri/i,excluye:/limpia|cleansing|micel|jab[oó]n|champ|shampoo|[ií]ntim|pediatr|solar|spf|fps|contorno|anti.?manchas|manos|antiestr|ba[nñ]o|corporal/i},
+  corporal:{segmento:["Facial y corporal"],incluye:/crema|loci[oó]n|emulsi[oó]n|b[aá]lsamo|leche|aceite|gel|hidrat|nutri/i,excluye:/limpia|cleansing|micel|jab[oó]n|spf|fps|[ií]ntim|pediatr|champ|shampoo|contorno|manos|antiestr/i},
+  solar:{segmento:["Fotoprotección"],incluye:/spf|fps|solar|fotoprot|uv|screen/i,excluye:/[ií]ntim|pediatr|capilar|champ|shampoo|labial/i},
+  preparacion:{segmento:["Hidratación / limpieza","Piel sensible / atópica"],incluye:/t[oó]nic|micel|limpia|agua/i,excluye:/[ií]ntim|pediatr|capilar|champ|shampoo|solar|spf|fps|contorno|anti.?manchas|manos|antiestr|ba[nñ]o/i}
+};
+const RITUALES=[
+  {titulo:"Piel grasa con imperfecciones",intro:"Sin aportar grasa y con protección todos los días.",
+   pasos:[{etiqueta:"Limpieza diaria",...PASO.limpieza},{etiqueta:"Tratamiento localizado",...PASO.acné},{etiqueta:"Protección solar",...PASO.solar}]},
+  {titulo:"Piel sensible y reactiva",intro:"Menos ingredientes y más tolerancia: aquí gana la constancia.",
+   pasos:[{etiqueta:"Limpieza suave",...PASO.limpiezaSuave},{etiqueta:"Calma y control",...PASO.sensible},{etiqueta:"Hidratación",...PASO.hidratacion}]},
+  {titulo:"Anti-edad y luminosidad",intro:"Luminosidad por la mañana y reparación por la noche.",
+   pasos:[{etiqueta:"Limpieza diaria",...PASO.limpiezaSuave},{etiqueta:"Sérum del día",...PASO.antiedad},{etiqueta:"Tratamiento de noche",...PASO.antiedad}]},
+  {titulo:"Piel con manchas",intro:"Corrector constante y fotoprotección sin fallas.",
+   pasos:[{etiqueta:"Limpieza diaria",...PASO.limpiezaSuave},{etiqueta:"Corrector de manchas",...PASO.manchas},{etiqueta:"Protección solar",...PASO.solar}]},
+  {titulo:"Piel seca y tirante",intro:"Recupera la barrera cutánea con texturas más ricas.",
+   pasos:[{etiqueta:"Limpieza sin resecar",...PASO.limpiezaSuave},{etiqueta:"Hidratación intensa",...PASO.hidratacion},{etiqueta:"Rostro y cuerpo",...PASO.corporal}]},
+  {titulo:"Protección solar diaria",intro:"El paso que más diferencia marca a largo plazo.",
+   pasos:[{etiqueta:"Preparación",...PASO.preparacion},{etiqueta:"Filtro facial",...PASO.solar},{etiqueta:"Reaplicación",...PASO.solar}]}
+];
+/* Producto al azar que cumple el paso. Lo anotamos en `usados` para que no se
+   repita en dos tarjetas. Si las palabras clave no dejan nada, se relajan y se
+   toma del segmento antes que dejar el paso vacío. */
+function productoRitual(paso,usados){
+  const etiquetas=paso.segmento.map(s=>String(s).trim());
+  const base=p=>hasVisiblePresentation(p,false)&&String(p.image||"").trim()
+    &&!usados.has(pkey(p))&&(p.segments||[]).some(s=>etiquetas.includes(String(s).trim()));
+  const conPalabras=products.filter(p=>base(p)
+    &&!(paso.excluye&&paso.excluye.test(String(p.name||"")))
+    &&(!paso.incluye||paso.incluye.test(String(p.name||""))));
+  const respaldo=conPalabras.length?conPalabras:products.filter(p=>base(p)
+    &&!(paso.excluye&&paso.excluye.test(String(p.name||""))));
+  if(!respaldo.length)return null;
+  const elegido=respaldo[Math.floor(Math.random()*respaldo.length)];
+  usados.add(pkey(elegido));
+  return elegido;
+}
+function renderRoutines(){
+  const grid=document.getElementById("routineGrid");
+  if(!grid)return;
+  const usados=new Set();
+  grid.innerHTML=RITUALES.map(ritual=>{
+    const pasos=ritual.pasos.map(paso=>{
+      const p=productoRitual(paso,usados);
+      /* Si no hay producto en esa categoría se queda el consejo general: nunca un hueco. */
+      if(!p)return `<li><span>${escapeHTML(paso.etiqueta)}</span><p>${escapeHTML(paso.segmento.join(" / "))}: pregúntanos en el local por las novedades.</p></li>`;
+      const vol=String(p.volume||"").trim();
+      return `<li><span>${escapeHTML(paso.etiqueta)}</span><strong>${escapeHTML(String(p.name))}</strong><small>${escapeHTML(String(p.brand))}${vol?" · "+escapeHTML(vol):""}</small></li>`;
+    }).join("");
+    return `<article class="routine-card"><h3>${escapeHTML(ritual.titulo)}</h3><p class="routine-intro">${escapeHTML(ritual.intro)}</p><ol>${pasos}</ol></article>`;
+  }).join("");
+}
 function renderHome(){
   const feat=products.filter(p=>hasVisiblePresentation(p,false)&&isFeaturedSelected(p));
-  fillGrid("featGrid",feat,"<div class=\"empty\" style=\"grid-column:1/-1\"><h3>Sin productos destacados</h3><p>Selecciona los productos destacados desde el administrador.</p></div>");
-  fillGrid("offerGrid",products.filter(p=>hasVisiblePresentation(p,false)&&isOfferSelected(p)),`<div class="empty" style="grid-column:1/-1"><h3>Sin productos en oferta</h3><p>Selecciona las ofertas desde el administrador.</p></div>`);
+  fillGrid("featGrid",feat,"<div class=\"empty\" style=\"grid-column:1/-1\"><h3>Sin productos destacados</h3><p>Selecciona los productos destacados desde el administrador.</p></div>",{flag:"is_featured"});
+  fillGrid("offerGrid",products.filter(p=>hasVisiblePresentation(p,false)&&isOfferSelected(p)),`<div class="empty" style="grid-column:1/-1"><h3>Sin productos en oferta</h3><p>Selecciona las ofertas desde el administrador.</p></div>`,{flag:"is_offer"});
   bindSlider("featSlider","featGrid");
   bindSlider("offerSlider","offerGrid");
 }
@@ -5236,7 +5329,24 @@ function iniciarRefrescoPrecios(){
 })();
 
 document.getElementById("brandFilter").addEventListener("change",e=>selectBrand(e.target.value));
-document.getElementById("searchInput").addEventListener("input",e=>{state.query=e.target.value;renderProducts();});
+/* Al empezar a escribir, la página baja al catálogo para que el cliente vea los
+   resultados sin tener que buscar la sección a mano. Se mide la altura de la barra
+   superior porque queda fija y taparía la caja de búsqueda. */
+let BUSQUEDA_BAJADA=false;
+function bajarAlCatalogo(){
+  const seccion=document.getElementById("catalogo");
+  if(!seccion)return;
+  const barra=document.querySelector(".topbar");
+  const altura=barra?barra.getBoundingClientRect().height:0;
+  const top=seccion.getBoundingClientRect().top+window.scrollY-altura-8;
+  window.scrollTo({top:Math.max(0,top),behavior:"smooth"});
+}
+document.getElementById("searchInput").addEventListener("input",e=>{
+  state.query=e.target.value;renderProducts();
+  /* Solo la primera vez que empieza a escribir: si sigue corrigiendo no debe volver a saltar. */
+  if(e.target.value.trim()){if(!BUSQUEDA_BAJADA){BUSQUEDA_BAJADA=true;bajarAlCatalogo();}}
+  else{BUSQUEDA_BAJADA=false;}
+});
 document.getElementById("skinFilter").addEventListener("change",e=>{state.skin=e.target.value;renderProducts();});
 document.getElementById("resetBtn").addEventListener("click",()=>{
   Object.assign(state,{brand:"Todas",segment:"Todos",skin:"Todas",query:"",active:"",pmin:null,pmax:null,stock:"Todas",offers:false});
@@ -5262,7 +5372,7 @@ initializeAdminFilters();
     if(r.error) console.warn("No se pudo cargar el inventario remoto:",r.error);
   }
   applyBranchData(getBranch());
-  renderProducts();renderBrands();renderCart();renderHome();
+  renderProducts();renderBrands();renderCart();renderHome();renderRoutines();
   syncPricesButton();
   iniciarRefrescoPrecios();
 })();

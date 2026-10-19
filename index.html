@@ -66,10 +66,13 @@ h1{margin:0;max-width:680px;font-size:clamp(38px,5vw,76px);font-weight:900;line-
 /* ===== CONTENIDO ===== */
 .page{max-width:1440px;margin:auto;padding:64px 32px 70px}
 .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
-.search{flex:1 1 320px;position:relative}
-.search input{width:100%;border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:14px 18px 14px 44px;outline:0;color:var(--ink)}
+.search{flex:1 1 320px;position:relative;display:flex;align-items:center;gap:8px}
+.search input{flex:1;border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:14px 18px 14px 44px;outline:0;color:var(--ink)}
 .search input:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(58,160,166,.15)}
-.search-icon{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--teal)}
+.search-icon{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--teal);pointer-events:none}
+.search-btn{width:44px;height:44px;border:0;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;box-shadow:0 4px 12px rgba(58,160,166,.3);transition:.2s}
+.search-btn:hover{background:var(--teal-dark);transform:scale(1.05)}
+.search-btn:active{transform:scale(.98)}
 .filter-control{border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:13px 16px;color:var(--ink);outline:0}
 .reset-btn{border:2px solid var(--pink-deep);border-radius:999px;padding:12px 17px;background:#fff;color:var(--teal-dark);font-weight:700}
 
@@ -501,7 +504,8 @@ body.visual-edit-mode .visual-edit-exit{display:block}
   <div class="toolbar">
     <div class="search">
       <span class="search-icon">⌕</span>
-      <input id="searchInput" type="search" placeholder="Buscar producto, activo o indicación…">
+      <input id="searchInput" type="search" placeholder="Buscar producto, activo o indicación…" autocomplete="off">
+      <button id="searchBtn" type="button" class="search-btn" aria-label="Buscar" title="Buscar">⌕</button>
     </div>
     <select class="filter-control" id="skinFilter" aria-label="Tipo de piel">
       <option value="Todas">Todas las pieles</option>
@@ -4759,6 +4763,45 @@ document.getElementById("visualProductForm").addEventListener("submit",async e=>
 
 function presentationCount(list){return list.reduce((n,p)=>n+(p.sizes&&p.sizes.length>1?p.sizes.length:1),0);}
 function fillGrid(id,list,empty,cardExtra=null){const g=document.getElementById(id);g.innerHTML="";let count=0;list.forEach(i=>{if(i.sizes&&i.sizes.length>1)i.sizes.forEach(size=>{if(!isProductDeleted(i,size)&&(visualEditMode||!isProductHidden(i,size))){g.appendChild(makeCard(i,size,cardExtra));count++;}});else if(!isProductDeleted(i,null)&&(visualEditMode||!isProductHidden(i,null))){g.appendChild(makeCard(i,null,cardExtra));count++;}});if(!count)g.innerHTML=empty;}
+/* ===== SEO: datos estructurados JSON-LD para productos =====
+   Inserta un <script type="application/ld+json"> con schema.org/Product
+   para cada producto visible. Google lee esto y muestra la ficha enriquecida
+   (precio, disponibilidad, imagen, marca) cuando alguien busca el nombre. */
+function inyectarProductSchema(productos){
+  const existentes=document.querySelectorAll('script[data-product-schema]');
+  existentes.forEach(s=>s.remove());
+  const base="https://latipiel.github.io";
+  productos.forEach(p=>{
+    const tallas=p.sizes&&p.sizes.length>1?p.sizes:[null];
+    tallas.forEach(talla=>{
+      if(isProductDeleted(p,talla)||(!visualEditMode&&isProductHidden(p,talla)))return;
+      const key=talla?pkey(p)+"|"+talla:pkey(p);
+      const d=invData(getBranch(),key);
+      const url=base+"#producto-"+encodeURIComponent(key);
+      const precio=d.price??p.price;const moneda="USD";
+      const disp=d.stock==="Agotado"||d.stock==="Sin stock"?"OutOfStock":"InStock";
+      const schema={
+        "@context":"https://schema.org",
+        "@type":"Product",
+        "@id":url,
+        "name":p.name,
+        "brand":{"@type":"Brand","name":p.brand},
+        "description":(p.actives||"")+(p.actives&&p.use?" · ":"")+(p.use||""),
+        "image":p.image||"",
+        "sku":key,
+        "offers":{"@type":"Offer","url":url,"priceCurrency":moneda,"price":precio?Number(precio).toFixed(2):"0.00","availability":"https://schema.org/"+disp,"seller":{"@type":"Organization","name":"Farmacia Dermatológica Latipiel"}},
+        "category":(p.segments||[]).join(", "),
+        "gtin13":p.gtin||""
+      };
+      const script=document.createElement("script");
+      script.type="application/ld+json";
+      script.setAttribute("data-product-schema","");
+      script.textContent=JSON.stringify(schema);
+      document.head.appendChild(script);
+    });
+  });
+}
+
 function renderProducts(){
   const filtered=products.filter(p=>hasVisiblePresentation(p,visualEditMode)&&matchesProduct(p));
   document.getElementById("moduleTitle").textContent=state.brand==="Todas"?"Todas las marcas":state.brand;
@@ -4768,6 +4811,7 @@ function renderProducts(){
   if(state.brand!=="Todas"&&!products.some(p=>p.brand===state.brand)){
     document.getElementById("productGrid").innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${escapeHTML(state.brand)}</h3><p>Los productos de esta marca se cargarán próximamente.</p><button class="nav-button" onclick="selectBrand('Avène')">Ver productos Avène</button></div>`;return;}
   fillGrid("productGrid",filtered,`<div class="empty" style="grid-column:1/-1"><h3>No encontramos productos</h3><p>Prueba otra palabra, piel, segmento o filtro.</p></div>`);
+  inyectarProductSchema(filtered);
 }
 /* PORTADA: la selección es 100% manual desde el panel de administración.
    Antes, si el administrador no había marcado nada, la página elegía sola
@@ -4861,9 +4905,12 @@ function renderRoutines(){
 function renderHome(){
   const feat=products.filter(p=>hasVisiblePresentation(p,false)&&isFeaturedSelected(p));
   fillGrid("featGrid",feat,"<div class=\"empty\" style=\"grid-column:1/-1\"><h3>Sin productos destacados</h3><p>Selecciona los productos destacados desde el administrador.</p></div>",{flag:"is_featured"});
-  fillGrid("offerGrid",products.filter(p=>hasVisiblePresentation(p,false)&&isOfferSelected(p)),`<div class="empty" style="grid-column:1/-1"><h3>Sin productos en oferta</h3><p>Selecciona las ofertas desde el administrador.</p></div>`,{flag:"is_offer"});
+  const offers=products.filter(p=>hasVisiblePresentation(p,false)&&isOfferSelected(p));
+  fillGrid("offerGrid",offers,`<div class="empty" style="grid-column:1/-1"><h3>Sin productos en oferta</h3><p>Selecciona las ofertas desde el administrador.</p></div>`,{flag:"is_offer"});
   bindSlider("featSlider","featGrid");
   bindSlider("offerSlider","offerGrid");
+  /* SEO: también indexamos los productos de la portada */
+  inyectarProductSchema([...feat,...offers]);
 }
 /* Desplazamiento lateral: muestra 4 productos por vista y avanza de 4 en 4.
    Sirve para las dos secciones de la portada (destacados y ofertas).
@@ -5347,12 +5394,22 @@ function bajarAlCatalogo(){
   const top=seccion.getBoundingClientRect().top+window.scrollY-altura-8;
   window.scrollTo({top:Math.max(0,top),behavior:"smooth"});
 }
+/* Búsqueda: filtra al escribir, pero SOLO desplaza al catálogo cuando el usuario
+   pulsa el botón Buscar o presiona Enter. Así en el celular el teclado no hace
+   que la página salte mientras se está corrigiendo el texto. */
+function ejecutarBusqueda(){
+  const input=document.getElementById("searchInput");
+  state.query=input.value;
+  renderProducts();
+  if(input.value.trim()){bajarAlCatalogo();}
+}
 document.getElementById("searchInput").addEventListener("input",e=>{
   state.query=e.target.value;renderProducts();
-  /* Solo la primera vez que empieza a escribir: si sigue corrigiendo no debe volver a saltar. */
-  if(e.target.value.trim()){if(!BUSQUEDA_BAJADA){BUSQUEDA_BAJADA=true;bajarAlCatalogo();}}
-  else{BUSQUEDA_BAJADA=false;}
 });
+document.getElementById("searchInput").addEventListener("keydown",e=>{
+  if(e.key==="Enter"){e.preventDefault();ejecutarBusqueda();}
+});
+document.getElementById("searchBtn").addEventListener("click",ejecutarBusqueda);
 document.getElementById("skinFilter").addEventListener("change",e=>{state.skin=e.target.value;renderProducts();});
 document.getElementById("resetBtn").addEventListener("click",()=>{
   Object.assign(state,{brand:"Todas",segment:"Todos",skin:"Todas",query:"",active:"",pmin:null,pmax:null,stock:"Todas",offers:false});

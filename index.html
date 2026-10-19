@@ -66,13 +66,12 @@ h1{margin:0;max-width:680px;font-size:clamp(38px,5vw,76px);font-weight:900;line-
 /* ===== CONTENIDO ===== */
 .page{max-width:1440px;margin:auto;padding:64px 32px 70px}
 .toolbar{display:flex;gap:12px;align-items:center;justify-content:space-between;flex-wrap:wrap;margin-bottom:22px}
-.search{flex:1 1 320px;position:relative;display:flex;align-items:center;gap:8px}
-.search input{flex:1;border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:14px 18px 14px 44px;outline:0;color:var(--ink)}
+.search{flex:1 1 320px;position:relative;display:flex;align-items:stretch;gap:8px;min-width:0}
+.search input{flex:1;min-width:0;width:100%;border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:14px 18px 14px 44px;outline:0;color:var(--ink)}
 .search input:focus{border-color:var(--teal);box-shadow:0 0 0 4px rgba(58,160,166,.15)}
-.search-icon{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--teal);pointer-events:none}
-.search-btn{width:44px;height:44px;border:0;border-radius:50%;background:var(--teal);color:#fff;display:grid;place-items:center;box-shadow:0 4px 12px rgba(58,160,166,.3);transition:.2s}
-.search-btn:hover{background:var(--teal-dark);transform:scale(1.05)}
-.search-btn:active{transform:scale(.98)}
+.search-icon{position:absolute;left:17px;top:50%;transform:translateY(-50%);color:var(--teal)}
+.search-submit{flex:0 0 auto;border:0;border-radius:999px;background:var(--wine);color:#fff;font-weight:800;padding:0 20px;cursor:pointer;white-space:nowrap}
+.search-submit:active{transform:scale(.98)}
 .filter-control{border:2px solid var(--pink-deep);background:#fff;border-radius:999px;padding:13px 16px;color:var(--ink);outline:0}
 .reset-btn{border:2px solid var(--pink-deep);border-radius:999px;padding:12px 17px;background:#fff;color:var(--teal-dark);font-weight:700}
 
@@ -504,8 +503,8 @@ body.visual-edit-mode .visual-edit-exit{display:block}
   <div class="toolbar">
     <div class="search">
       <span class="search-icon">⌕</span>
-      <input id="searchInput" type="search" placeholder="Buscar producto, activo o indicación…" autocomplete="off">
-      <button id="searchBtn" type="button" class="search-btn" aria-label="Buscar" title="Buscar">⌕</button>
+      <input id="searchInput" type="search" placeholder="Buscar producto, activo o indicación…">
+      <button class="search-submit" id="searchBtn" type="button">Buscar</button>
     </div>
     <select class="filter-control" id="skinFilter" aria-label="Tipo de piel">
       <option value="Todas">Todas las pieles</option>
@@ -5382,34 +5381,34 @@ function iniciarRefrescoPrecios(){
 })();
 
 document.getElementById("brandFilter").addEventListener("change",e=>selectBrand(e.target.value));
-/* Al empezar a escribir, la página baja al catálogo para que el cliente vea los
-   resultados sin tener que buscar la sección a mano. Se mide la altura de la barra
-   superior porque queda fija y taparía la caja de búsqueda. */
-let BUSQUEDA_BAJADA=false;
+/* La búsqueda filtra mientras se escribe, pero SOLO desplaza al pulsar Buscar o Enter. */
 function bajarAlCatalogo(){
-  const seccion=document.getElementById("catalogo");
-  if(!seccion)return;
+  const destino=document.querySelector(".results-meta")||document.getElementById("productGrid")||document.getElementById("catalogo");
+  if(!destino)return;
   const barra=document.querySelector(".topbar");
   const altura=barra?barra.getBoundingClientRect().height:0;
-  const top=seccion.getBoundingClientRect().top+window.scrollY-altura-8;
+  const top=destino.getBoundingClientRect().top+window.scrollY-altura-12;
   window.scrollTo({top:Math.max(0,top),behavior:"smooth"});
 }
-/* Búsqueda: filtra al escribir, pero SOLO desplaza al catálogo cuando el usuario
-   pulsa el botón Buscar o presiona Enter. Así en el celular el teclado no hace
-   que la página salte mientras se está corrigiendo el texto. */
+const searchInput=document.getElementById("searchInput");
 function ejecutarBusqueda(){
-  const input=document.getElementById("searchInput");
-  state.query=input.value;
+  state.query=searchInput.value.trim();
   renderProducts();
-  if(input.value.trim()){bajarAlCatalogo();}
+  /* Espera al render de los resultados antes de desplazarse. */
+  setTimeout(()=>requestAnimationFrame(()=>requestAnimationFrame(bajarAlCatalogo)),100);
+  searchInput.blur();
 }
-document.getElementById("searchInput").addEventListener("input",e=>{
-  state.query=e.target.value;renderProducts();
-});
-document.getElementById("searchInput").addEventListener("keydown",e=>{
-  if(e.key==="Enter"){e.preventDefault();ejecutarBusqueda();}
+searchInput.addEventListener("input",e=>{
+  state.query=e.target.value;
+  renderProducts();
 });
 document.getElementById("searchBtn").addEventListener("click",ejecutarBusqueda);
+searchInput.addEventListener("keydown",e=>{
+  if(e.key==="Enter"){
+    e.preventDefault();
+    ejecutarBusqueda();
+  }
+});
 document.getElementById("skinFilter").addEventListener("change",e=>{state.skin=e.target.value;renderProducts();});
 document.getElementById("resetBtn").addEventListener("click",()=>{
   Object.assign(state,{brand:"Todas",segment:"Todos",skin:"Todas",query:"",active:"",pmin:null,pmax:null,stock:"Todas",offers:false});

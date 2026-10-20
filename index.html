@@ -1022,10 +1022,32 @@ html body #catalogo{margin-top:14px!important}
   .admin-brand-chip button:hover{opacity:1}
 </style>
 
+<style id="latipiel-design-logos-v1">
+  /* Editor de diseño: logotipos de las marcas e iconos de «¿Qué quieres cuidar
+     hoy?», que antes no se podían tocar porque su imagen está dentro de una
+     tarjeta-botón (los clics caen en el botón, nunca en el <img>) o en un <svg>.
+     También el salto directo entre los menús de edición.
+     Para deshacer: borra este bloque y las entradas __logo__/__src__ de
+     latipiel_design_storage. */
+  .design-img-row{display:flex;gap:6px;margin-top:6px;flex-wrap:wrap}
+  .design-img-row .design-apply-btn{flex:1;min-width:118px}
+  .design-apply-ghost{background:transparent!important;border:2px solid var(--wine)!important;color:var(--wine)!important}
+  .design-img-note{font:600 11px/1.45 inherit;color:var(--muted);margin:6px 0 0}
+  .design-img-note:empty{display:none}
+  .design-logo-off{display:none!important}
+  .glass-category-icon img[data-design-logo]{width:100%;height:100%;object-fit:contain;border-radius:50%;padding:3px;box-sizing:border-box}
+  .design-switch-grid{display:grid;grid-template-columns:1fr;gap:8px}
+  .design-switch-grid button{border:2px solid var(--pink-deep);background:#fff;color:var(--wine);border-radius:999px;padding:11px 14px;font:800 12px inherit;cursor:pointer;transition:background .15s ease}
+  .design-switch-grid button:hover{background:var(--pink-soft)}
+  .visual-design-btn{display:none;position:fixed;right:18px;bottom:192px;z-index:45;border:0;border-radius:999px;padding:12px 16px;background:#7c3aed;color:#fff;font-weight:900;box-shadow:0 8px 24px #0003;cursor:pointer}
+  body.visual-edit-mode .visual-design-btn{display:block}
+  @media(max-width:560px){.visual-design-btn{right:12px;bottom:192px;font-size:12px;padding:11px 14px}}
+</style>
+
 </head>
 <body>
 <div class="visual-edit-hint"><span>MODO EDICIÓN: abre el menú ✎ de cada tarjeta para editar, ocultar/mostrar o retirar el producto.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="visual-add-btn" id="visualAddProduct" type="button">＋ Agregar producto</button><button class="visual-restore-btn" id="visualRestoreDeleted" type="button">♻ Recuperar productos eliminados</button></div></div>
-<button class="visual-save-btn" id="visualSaveChanges" type="button">💾 Guardar cambios y terminar</button><button class="visual-edit-exit" id="visualEditExit" type="button">✓ Terminar edición</button>
+<button class="visual-save-btn" id="visualSaveChanges" type="button">💾 Guardar cambios y terminar</button><button class="visual-design-btn" id="visualGoDesign" type="button">Editor de diseño</button><button class="visual-edit-exit" id="visualEditExit" type="button">✓ Terminar edición</button>
 <div class="visual-product-modal" id="visualProductModal" role="dialog" aria-modal="true" aria-labelledby="visualProductTitle">
   <form class="visual-product-form" id="visualProductForm">
     <h2 id="visualProductTitle">Editar producto</h2>
@@ -1103,9 +1125,15 @@ html body #catalogo{margin-top:14px!important}
         <div class="design-ctrl-btns"><button type="button" data-align="left">⟸</button><button type="button" data-align="center">↔</button><button type="button" data-align="right">⟹</button></div>
       </div>
       <div class="design-ctrl-group" id="deImageGroup" style="display:none">
-        <label>Imagen</label>
-        <input type="url" id="deImageUrl" placeholder="https://nueva-imagen.jpg">
+        <label id="deImageLabel">Imagen</label>
+        <input type="text" inputmode="url" id="deImageUrl" placeholder="https://nueva-imagen.jpg">
         <button type="button" id="deImageApply" class="design-apply-btn">Cambiar imagen</button>
+        <div class="design-img-row">
+          <input type="file" id="deImageFile" accept="image/png,image/jpeg,image/webp,image/gif,image/svg+xml" hidden>
+          <button type="button" id="deImageUpload" class="design-apply-btn">Subir desde el equipo</button>
+          <button type="button" id="deImageClear" class="design-apply-btn design-apply-ghost">Quitar</button>
+        </div>
+        <p class="design-img-note" id="deImageNote"></p>
       </div>
       <div class="design-ctrl-group" id="deTextGroup" style="display:none">
         <label>Texto visible</label>
@@ -1138,6 +1166,12 @@ html body #catalogo{margin-top:14px!important}
       <button type="button" data-add="banner"><span>📢</span>Banner</button>
     </div>
     <button type="button" class="design-delete-btn" id="deDeleteElement">🗑 Eliminar este elemento de la página</button>
+    <!-- Saltar de un menú de edición a otro sin pasar por el administrador -->
+    <div class="design-section-title">Cambiar de menú</div>
+    <div class="design-switch-grid" id="designSwitchGrid">
+      <button type="button" data-go="productos">Editar tarjetas del catálogo</button>
+      <button type="button" data-go="admin">Panel de administración</button>
+    </div>
   </div>
   <div class="design-editor-footer">
     <button type="button" id="deSaveAll" class="design-save-all">💾 Guardar diseño</button>
@@ -6091,6 +6125,10 @@ function inyectarProductSchema(productos){
   });
 }
 
+/* renderProducts/renderHome/renderBrands repintan el HTML, y al repintarlo se
+   perdían los cambios del editor de diseño (colores, textos, logotipos e
+   iconos). Este gancho los vuelve a aplicar en el momento. */
+function repintarDiseno(){if(window.latipielDesignRefresh)window.latipielDesignRefresh();}
 function renderProducts(){
   const filtered=products.filter(p=>hasVisiblePresentation(p,visualEditMode)&&matchesProduct(p));
   document.getElementById("moduleTitle").textContent=state.brand==="Todas"?"Todas las marcas":state.brand;
@@ -6098,9 +6136,10 @@ function renderProducts(){
   const visibleCount=filtered.reduce((n,p)=>n+((p.sizes&&p.sizes.length>1?p.sizes:[null]).filter(size=>!isProductDeleted(p,size)&&(visualEditMode||!isProductHidden(p,size))).length),0);
   document.getElementById("resultCount").textContent=`${visibleCount} presentación${visibleCount===1?"":"es"}`;
   if(state.brand!=="Todas"&&!products.some(p=>p.brand===state.brand)){
-    document.getElementById("productGrid").innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${escapeHTML(state.brand)}</h3><p>Los productos de esta marca se cargarán próximamente.</p><button class="nav-button" onclick="selectBrand('Avène')">Ver productos Avène</button></div>`;return;}
+    document.getElementById("productGrid").innerHTML=`<div class="empty" style="grid-column:1/-1"><h3>${escapeHTML(state.brand)}</h3><p>Los productos de esta marca se cargarán próximamente.</p><button class="nav-button" onclick="selectBrand('Avène')">Ver productos Avène</button></div>`;repintarDiseno();return;}
   fillGrid("productGrid",filtered,`<div class="empty" style="grid-column:1/-1"><h3>No encontramos productos</h3><p>Prueba otra palabra, piel, segmento o filtro.</p></div>`);
   inyectarProductSchema(filtered);
+  repintarDiseno();
 }
 /* PORTADA: la selección es 100% manual desde el panel de administración.
    Antes, si el administrador no había marcado nada, la página elegía sola
@@ -6200,6 +6239,7 @@ function renderHome(){
   bindSlider("offerSlider","offerGrid");
   /* SEO: también indexamos los productos de la portada */
   inyectarProductSchema([...feat,...offers]);
+  repintarDiseno();
 }
 /* Desplazamiento lateral: muestra 4 productos por vista y avanza de 4 en 4.
    Sirve para las dos secciones de la portada (destacados y ofertas).
@@ -6287,6 +6327,7 @@ function renderBrands(){
     const etq=c?(c+" "+(c===1?"producto":"productos")):"Próximamente";
     return `<button class="brand-count-row ${b===state.brand?"active":""}" data-brand="${escapeHTML(b)}" title="${escapeHTML(b)} — ${etq}"><span>${escapeHTML(b)}</span><small>${etq}</small><svg viewBox="0 0 24 24" aria-hidden="true"><path d="m9 5 7 7-7 7"></path></svg></button>`;}).join("");
   document.querySelectorAll(".brand-card,.brand-count-row").forEach(btn=>btn.addEventListener("click",()=>selectBrand(btn.dataset.brand)));
+  repintarDiseno();
 }
 function selectBrand(b){state.brand=b;document.getElementById("brandFilter").value=b;renderProducts();renderBrands();document.getElementById("catalogo").scrollIntoView({behavior:"smooth"});}
 let modalQty=1;
@@ -6971,6 +7012,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
   const STORAGE_KEY="latipiel_design_storage";
   let designData={};
   let selectedEl=null;
+  /* Contenedor de la imagen del elemento elegido (el <img> o la tarjeta/icono
+     que lo lleva dentro): es el que recibe el logo o icono nuevo. */
+  let zonaImg=null;
   let designMode=false;
 
   /* Selectores de elementos editables: se les añade la clase design-editable */
@@ -6980,7 +7024,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     ".nav-links a",".nav-button",".cart-btn",".admin-nav-btn",
     ".section-heading",".section-heading h2",
     ".product-card",".card-visual",".card-visual img",".card-body h3",".card-brand",
-    ".brand-card",".brand-card strong",
+    ".brand-card",".brand-card strong",".brand-card small",".brand-card .brand-monogram",".brand-card .brand-bg-img",
     ".social-card",".social-btn",".social-row h3",
     ".contact-grid",".contact-link",".contact-link strong",
     ".promo-banner",".promo-banner strong",
@@ -6991,7 +7035,9 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     ".cart-drawer",".cart-head h3",
     ".module-banner",".module-banner strong",
     ".results-meta h2",
-    ".home-sec h2",".home-sec"
+    ".home-sec h2",".home-sec",
+    ".glass-skin-strip",".glass-skin-heading",".glass-skin-heading h2",".glass-skin-heading .kicker",
+    ".glass-category-buttons",".glass-category",".glass-category-icon",".glass-category b"
   ];
 
   function loadDesign(){
@@ -6999,18 +7045,46 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     applyDesign();
   }
   function saveDesign(){
-    localStorage.setItem(STORAGE_KEY,JSON.stringify(designData));
+    try{
+      localStorage.setItem(STORAGE_KEY,JSON.stringify(designData));
+      return true;
+    }catch(e){
+      /* Sin espacio (logos subidos como data URI pesan) o en modo privado */
+      alert("No se pudo guardar el diseño en este navegador.\n\nCasi siempre es porque el espacio de almacenamiento está lleno. Borra algún logo subido con «Quitar» o usa direcciones de imagen en lugar de subir archivos.");
+      return false;
+    }
   }
+  /* Clases que cambian solas (elemento seleccionado, menús abiertos): si
+     entraran en el selector, el cambio guardado dejaría de encontrarse. */
+  const VOLATILE_CLASSES=new Set(["active","open","selected","is-active","show","hidden","in"]);
   /* Genera un selector único y estable para un elemento */
   function selectorFor(el){
     if(el.id)return "#"+el.id;
+    /* Ancla por nombre: la marca y la categoría se identifican por su nombre, de
+       modo que el logo o el icono no se mueven si se reordena o se filtra. */
+    const attr=el.getAttribute?el.getAttribute("data-brand"):null;
+    if(attr!=null){
+      const padre=el.parentElement;
+      const clase=el.classList&&el.classList.contains("brand-count-row")?"brand-count-row":"brand-card";
+      return (padre&&padre.id?"#"+padre.id+" ":"")+'.'+clase+'[data-brand="'+String(attr).split('"').join("")+'"]';
+    }
+    const care=el.getAttribute?el.getAttribute("data-glass-care"):null;
+    if(care!=null){
+      const padre=el.parentElement;
+      return (padre&&padre.id?"#"+padre.id+" ":"")+'.glass-category[data-glass-care="'+String(care).split('"').join("")+'"]';
+    }
+    if(el.classList&&el.classList.contains("glass-category-icon")){
+      const cat=el.parentElement;
+      if(cat&&cat.classList&&cat.classList.contains("glass-category")&&cat.getAttribute("data-glass-care"))
+        return selectorFor(cat)+" > .glass-category-icon";
+    }
     const parts=[];
     let node=el;
     while(node&&node!==document.body&&parts.length<5){
       let seg=node.tagName.toLowerCase();
       if(node.id){seg="#"+node.id;parts.unshift(seg);break;}
       if(node.className&&typeof node.className==="string"){
-        const cls=node.className.trim().split(/\s+/).filter(c=>!c.startsWith("design-")).slice(0,2);
+        const cls=node.className.trim().split(/\s+/).filter(c=>!c.startsWith("design-")&&!VOLATILE_CLASSES.has(c)).slice(0,2);
         if(cls.length)seg+="."+cls.join(".");
       }
       const parent=node.parentElement;
@@ -7028,9 +7102,20 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
   /* "__texto__" no es una propiedad CSS: guarda el texto escrito desde el
      editor para que no se pierda al recargar la página. */
   const TEXT_PROP="__texto__";
+  /* "__src__" guarda la imagen de un <img> suelto y "__logo__" el logotipo o el
+     icono que el editor coloca DENTRO de una tarjeta de marca o de un icono de
+     categoría. Antes se guardaba como "data-src", que no es una propiedad CSS
+     válida, así que la imagen volvía a la original al recargar la página. */
+  const SRC_PROP="__src__";
+  const LOGO_PROP="__logo__";
   function applyDesign(){
     /* Elimina estilos inline previos del diseño */
     document.querySelectorAll("[data-design-id]").forEach(el=>{el.removeAttribute("style");el.removeAttribute("data-design-id");});
+    /* Los logos e iconos que puso el editor se quitan y se vuelven a crear solo
+       si siguen guardados: así, al borrar un cambio, la marca recupera su logo
+       original (y el icono, su dibujo), que reaparecen al desmarcarlos. */
+    document.querySelectorAll("img[data-design-logo]").forEach(i=>i.remove());
+    document.querySelectorAll(".design-logo-off").forEach(c=>c.classList.remove("design-logo-off"));
     for(const sel in designData){
       const styles=designData[sel];
       try{
@@ -7038,12 +7123,81 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
         els.forEach(el=>{
           el.setAttribute("data-design-id",sel);
           for(const prop in styles){
-            if(prop===TEXT_PROP){if(canEditText(el))setOwnText(el,styles[prop]);continue;}
-            el.style.setProperty(prop,styles[prop],"important");
+            const val=styles[prop];
+            if(prop===TEXT_PROP){if(canEditText(el))setOwnText(el,val);continue;}
+            if(prop===SRC_PROP){if(el.tagName==="IMG"&&val)el.src=val;continue;}
+            if(prop===LOGO_PROP){colocarLogo(el,val);continue;}
+            el.style.setProperty(prop,val,"important");
           }
         });
       }catch(e){}
     }
+  }
+
+  /* Coloca (o con cadena vacía, retira) el logotipo/icono dentro de su
+     contenedor. Lo que había se marca con .design-logo-off, que se deshace al
+     recargar, de modo que el original vuelve sin necesidad de guardarlo. */
+  function colocarLogo(el,url){
+    if(!el||!url)return;
+    if(el.tagName==="IMG"){el.src=url;return;}
+    const esTarjeta=el.classList.contains("brand-card");
+    const img=document.createElement("img");
+    img.setAttribute("data-design-logo","1");
+    img.className=esTarjeta?"brand-bg-img":"design-logo-img";
+    img.alt="Imagen personalizada";
+    img.src=url;
+    /* Ojo: en los <svg> tagName es minúscula, no MAYÚSCULA como en el resto */
+    [...el.children].forEach(c=>{
+      const tag=String(c.tagName||"").toLowerCase();
+      if(tag==="img"||tag==="svg"||(esTarjeta&&c.classList.contains("brand-monogram")))c.classList.add("design-logo-off");
+    });
+    const ref=esTarjeta?el.querySelector("strong"):el.querySelector("svg");
+    if(ref)el.insertBefore(img,ref);else el.appendChild(img);
+  }
+  /* Elemento cuya imagen se puede cambiar: un <img> o el contenedor que la
+     lleva (tarjeta de marca, icono de «¿Qué quieres cuidar hoy?»). */
+  function zonaDeImagen(el){
+    if(!el||!el.tagName)return null;
+    /* tagName es MAYÚSCULA en el HTML y minúscula en los SVG */
+    const tag=String(el.tagName).toLowerCase();
+    if(tag==="script"||tag==="style"||tag==="noscript"||tag==="iframe")return null;
+    if(el.closest(".design-editor-panel")||el.closest(".admin-backdrop"))return null;
+    if(tag==="img")return el;
+    const tarjeta=el.closest(".brand-card");
+    if(tarjeta)return tarjeta;
+    const icono=el.closest(".glass-category-icon");
+    if(icono)return icono;
+    const cat=el.closest(".glass-category");
+    if(cat)return cat.querySelector(".glass-category-icon")||cat;
+    return null;
+  }
+  function logoActual(zona){
+    const guardado=(designData[selectorFor(zona)]||{})[LOGO_PROP];
+    if(typeof guardado==="string")return guardado;
+    if(zona.tagName==="IMG")return zona.src||"";
+    const propio=zona.querySelector("img[data-design-logo],img.brand-bg-img");
+    return propio?propio.src:"";
+  }
+  /* Aplica la imagen de la caja a la zona elegida. Devuelve false si no cambió. */
+  function aplicarLogo(zona,url){
+    if(!zona)return false;
+    const sel=selectorFor(zona);
+    if(!designData[sel])designData[sel]={};
+    if(zona.tagName==="IMG"){
+      if(!url){toast("Escribe la dirección de la imagen");return false;}
+      designData[sel][SRC_PROP]=url;zona.src=url;return true;
+    }
+    if(!url){
+      delete designData[sel][LOGO_PROP];
+      zona.querySelectorAll("img[data-design-logo]").forEach(i=>i.remove());
+      zona.querySelectorAll(".design-logo-off").forEach(c=>c.classList.remove("design-logo-off"));
+      toast("Imagen quitada: vuelve la original. Pulsa «Guardar diseño».");
+      return true;
+    }
+    designData[sel][LOGO_PROP]=url;
+    colocarLogo(zona,url);
+    toast("Imagen aplicada. Pulsa «Guardar diseño» para conservarla.");
+    return true;
   }
 
   /* Marca los elementos como editables */
@@ -7095,7 +7249,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     toast("🎨 Modo diseño: haz clic en cualquier elemento");
   }
   function closePanel(){
-    designMode=false;selectedEl=null;
+    designMode=false;selectedEl=null;zonaImg=null;
     document.body.classList.remove("design-mode-open","design-has-target");
     unmarkEditable();
     panel.setAttribute("aria-hidden","true");
@@ -7107,8 +7261,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     if(e.target.closest(".design-editor-panel"))return;
     if(e.target.closest(".admin-backdrop"))return;
     e.preventDefault();e.stopPropagation();
-    const el=e.target;
+    let el=e.target;
     if(el===document.body||el===document.documentElement)return;
+    /* El dibujo (svg) de un icono no se puede estilar ni escribir: se elige el
+       recuadro del icono, que es el que lleva la imagen. */
+    const tagClic=String(el.tagName||"").toLowerCase();
+    if((tagClic==="svg"||tagClic==="path"||tagClic==="circle"||tagClic==="rect")&&el.closest(".glass-category-icon"))el=el.closest(".glass-category-icon");
     /* Quita marca anterior */
     document.querySelectorAll(".design-edit-target").forEach(x=>x.classList.remove("design-edit-target"));
     el.classList.add("design-edit-target");
@@ -7118,8 +7276,21 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     selectedInfo.textContent=sel;
     selectedInfo.style.display="block";
     hintEl.style.display="none";
-    /* Muestra u oculta grupo imagen */
-    if(el.tagName==="IMG"){imgGroup.style.display="grid";document.getElementById("deImageUrl").value=el.src;}
+    /* Muestra u oculta grupo imagen. El logo de una marca y el icono de
+       «¿Qué quieres cuidar hoy?» no estaban aquí: su imagen está dentro de una
+       tarjeta-botón o de un <svg> y el clic nunca llegaba al <img>, así que no
+       se podían cambiar desde el editor. */
+    zonaImg=zonaDeImagen(el);
+    if(zonaImg){
+      const esMarca=zonaImg.classList.contains("brand-card");
+      const esIcono=zonaImg.classList.contains("glass-category-icon");
+      imgGroup.style.display="grid";
+      document.getElementById("deImageLabel").textContent=esMarca?"Logotipo de la marca":(esIcono?"Icono de «¿Qué quieres cuidar hoy?»":"Imagen");
+      document.getElementById("deImageUrl").value=logoActual(zonaImg);
+      document.getElementById("deImageNote").textContent=esMarca
+        ?"Pega la dirección del logo o súbelo desde el equipo. «Quitar» devuelve el logo original de la marca."
+        :(esIcono?"Pega la dirección de un icono o súbelo desde el equipo. «Quitar» devuelve el dibujo original.":"");
+    }
     else imgGroup.style.display="none";
     /* Muestra u oculta grupo texto: ahora casi cualquier elemento con texto
        editable abre el cuadro (antes se quedaban fuera los que tenían
@@ -7232,9 +7403,28 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     });
   });
   document.getElementById("deImageApply").addEventListener("click",()=>{
-    if(!selectedEl||selectedEl.tagName!=="IMG")return;
-    const url=document.getElementById("deImageUrl").value.trim();
-    if(url){selectedEl.src=url;applyProp("data-src",url);}
+    if(!zonaImg)return;
+    aplicarLogo(zonaImg,document.getElementById("deImageUrl").value.trim());
+  });
+  /* Subir la imagen desde el equipo (se guarda como data URI en este navegador) */
+  document.getElementById("deImageUpload").addEventListener("click",()=>document.getElementById("deImageFile").click());
+  document.getElementById("deImageFile").addEventListener("change",e=>{
+    const file=e.target.files&&e.target.files[0];
+    e.target.value="";
+    if(!file)return;
+    if(!/^image\//.test(file.type)){toast("Ese archivo no es una imagen");return;}
+    if(file.size>700*1024&&!confirm("La imagen pesa "+Math.round(file.size/1024)+" KB y se guarda dentro del diseño de este navegador. ¿Continuar?"))return;
+    const fr=new FileReader();
+    fr.onload=()=>{document.getElementById("deImageUrl").value=fr.result;aplicarLogo(zonaImg,fr.result);};
+    fr.onerror=()=>toast("No se pudo leer la imagen");
+    fr.readAsDataURL(file);
+  });
+  /* Quitar la imagen y volver al original */
+  document.getElementById("deImageClear").addEventListener("click",()=>{
+    if(!zonaImg)return;
+    if(zonaImg.tagName==="IMG"){toast("Escribe una dirección nueva para cambiarla");return;}
+    document.getElementById("deImageUrl").value="";
+    aplicarLogo(zonaImg,"");
   });
   document.getElementById("deTextApply").addEventListener("click",()=>{
     if(!selectedEl)return;
@@ -7261,18 +7451,34 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     const sel=selectorFor(selectedEl);
     delete designData[sel];
     selectedEl.removeAttribute("style");
+    /* Si la imagen está en un contenedor distinto del elemento seleccionado
+       (p. ej. se hizo clic en el nombre y el logo vive en la tarjeta), hay que
+       restablecerla aparte o quedaría guardada. */
+    if(zonaImg&&zonaImg!==selectedEl){
+      const zst=designData[selectorFor(zonaImg)];
+      if(zst){
+        delete zst[LOGO_PROP];delete zst[SRC_PROP];
+        if(!Object.keys(zst).length)delete designData[selectorFor(zonaImg)];
+      }
+      if(zonaImg.tagName!=="IMG"){
+        zonaImg.querySelectorAll("img[data-design-logo]").forEach(i=>i.remove());
+        zonaImg.querySelectorAll(".design-logo-off").forEach(c=>c.classList.remove("design-logo-off"));
+      }
+      if(document.getElementById("deImageGroup").style.display==="grid")document.getElementById("deImageUrl").value=logoActual(zonaImg);
+    }
     toast("Elemento restablecido");
   });
   /* Guardar todo */
   document.getElementById("deSaveAll").addEventListener("click",()=>{
-    saveDesign();
-    toast("✅ Diseño guardado en este navegador");
+    if(saveDesign())toast("✅ Diseño guardado en este navegador");
   });
   /* Borrar todo */
   document.getElementById("deResetAll").addEventListener("click",()=>{
     if(!confirm("¿Borrar todos los cambios de diseño de la página?"))return;
     designData={};localStorage.removeItem(STORAGE_KEY);
     document.querySelectorAll("[data-design-id]").forEach(el=>{el.removeAttribute("style");el.removeAttribute("data-design-id");});
+    document.querySelectorAll("img[data-design-logo]").forEach(i=>i.remove());
+    document.querySelectorAll(".design-logo-off").forEach(c=>c.classList.remove("design-logo-off"));
     toast("Diseño restablecido");
   });
   /* ===== AGREGAR ELEMENTOS NUEVOS A LA PÁGINA ===== */
@@ -7360,11 +7566,44 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
   /* Cerrar */
   document.getElementById("designEditorClose").addEventListener("click",closePanel);
 
-  /* Botón en panel admin */
-  document.getElementById("adminDesignEditor").addEventListener("click",()=>{
-    closeAdmin();
+  /* Botón en panel admin. Se cierra con keepSession para no cerrar la sesión:
+     así se puede volver al panel de administración sin volver a iniciar sesión. */
+  document.getElementById("adminDesignEditor").addEventListener("click",async()=>{
+    await closeAdmin(true);
     setTimeout(openPanel,400);
   });
+
+  /* ===== SALTO ENTRE MENÚS DE EDICIÓN =====
+     Diseño <-> tarjetas <-> administración directamente, sin tener que reabrir
+     el panel de administración ni volver a iniciar sesión cada vez. */
+  function irA(tipo){
+    closePanel();
+    if(tipo==="productos"){setVisualEditMode(true);return;}
+    const backdrop=document.getElementById("adminBackdrop");
+    if(typeof adminSession!=="undefined"&&adminSession&&backdrop){
+      try{if(typeof adminRows==="function")adminRows();}catch(e){}
+      try{syncAdminPendingBadge();renderAdminBrandChips();}catch(e){}
+      backdrop.classList.add("open");
+      document.body.style.overflow="hidden";
+      toast("⚙ Panel de administración abierto");
+      return;
+    }
+    setTimeout(openAdmin,350);
+  }
+  document.getElementById("designSwitchGrid").addEventListener("click",e=>{
+    const b=e.target.closest("button[data-go]");
+    if(b)irA(b.dataset.go);
+  });
+  const visualGoDesign=document.getElementById("visualGoDesign");
+  if(visualGoDesign)visualGoDesign.addEventListener("click",()=>{setVisualEditMode(false);openPanel();});
+
+  /* renderBrands() y renderProducts() repintan el HTML y borraban lo aplicado:
+      este gancho vuelve a dibujar el diseño (y la marca editable) al instante. */
+  window.latipielDesignRefresh=function(){
+    try{applyDesign();}catch(e){}
+    if(designMode)try{markEditable();}catch(e){}
+  };
+  window.latipielDesignOpenPanel=openPanel;
 
   /* Cargar diseño guardado al inicio */
   if(document.readyState==="loading")document.addEventListener("DOMContentLoaded",()=>{loadDesign();restoreNewEls();});

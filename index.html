@@ -1126,7 +1126,16 @@ html body #catalogo{margin-top:14px!important}
   .csv-cancel{background:var(--pink-soft);color:var(--wine)}
   .csv-import{background:var(--teal);color:#fff}
   .csv-import:disabled{opacity:.45;cursor:not-allowed}
-  @media(max-width:560px){.csv-panel{padding:16px}.csv-head h2{font-size:17px}.csv-table{font-size:10px}}
+  /* Opción de actualizar precios de productos que ya existen */
+  .csv-options{margin-top:12px;padding:12px 14px;border-radius:16px;border:1px solid rgba(122,59,52,.16);background:rgba(255,255,255,.62)}
+  .csv-check{display:flex;align-items:flex-start;gap:9px;font-size:12px;font-weight:800;color:var(--wine);cursor:pointer;line-height:1.45}
+  .csv-check input{width:18px;height:18px;margin:1px 0 0;accent-color:var(--teal);flex:none}
+  .csv-branch-row{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin-top:10px;padding-top:10px;border-top:1px dashed rgba(122,59,52,.18)}
+  .csv-branch-row>label{display:flex;align-items:center;gap:7px;font-size:11px;font-weight:900;color:var(--wine);text-transform:uppercase;letter-spacing:.04em}
+  .csv-branch-row select{border:2px solid var(--line);border-radius:9px;padding:6px 9px;font:800 12px inherit;color:var(--ink);background:#fff}
+  .csv-branch-note{flex:1 1 220px;font-size:11px;color:var(--muted);font-weight:600;line-height:1.45}
+  .csv-table tr.actualiza td{background:rgba(203,238,246,.55)}
+  @media(max-width:560px){.csv-panel{padding:16px}.csv-head h2{font-size:17px}.csv-table{font-size:10px}.csv-options{padding:10px 11px}}
 </style>
 
 </head>
@@ -1639,7 +1648,7 @@ html body #catalogo{margin-top:14px!important}
       <h2 id="csvImportTitle">📥 Importar productos desde CSV</h2>
       <button type="button" class="csv-close" id="csvImportClose" aria-label="Cerrar">✕</button>
     </header>
-    <p class="csv-help">Elige el archivo que te envió el proveedor. Se reconocen las columnas de <b>marca</b>, <b>producto</b>, <b>presentación</b>, <b>precio</b>, <b>precio anterior</b>, <b>segmento</b>, <b>tipo</b>, <b>piel</b>, <b>activos</b>, <b>uso</b> e <b>imagen</b>, con separador <code>;</code>, <code>,</code> o tabulador. Solo se agregan productos nuevos: los que ya existen (misma marca y nombre) se omiten.</p>
+    <p class="csv-help">Elige el archivo que te envió el proveedor. Se reconocen las columnas de <b>marca</b>, <b>producto</b>, <b>presentación</b>, <b>precio</b>, <b>precio anterior</b>, <b>segmento</b>, <b>tipo</b>, <b>piel</b>, <b>activos</b>, <b>uso</b> e <b>imagen</b>, con separador <code>;</code>, <code>,</code> o tabulador. Por defecto solo se agregan productos nuevos (los que ya existen se omiten); si marcas la casilla de abajo, también se les actualiza el precio.</p>
     <div class="csv-drop" id="csvDrop">
       <input type="file" id="csvFile" accept=".csv,.txt,text/csv,text/plain">
       <p>Arrastra el archivo aquí o <b>tócalo para elegirlo</b></p>
@@ -1647,6 +1656,14 @@ html body #catalogo{margin-top:14px!important}
     <div class="csv-actions-top">
       <button type="button" class="csv-ghost" id="csvTemplate">Descargar plantilla</button>
       <span class="csv-file" id="csvFileName"></span>
+    </div>
+    <div class="csv-options">
+      <label class="csv-check"><input type="checkbox" id="csvUpdatePrices"> Actualizar también el precio de los productos que ya existen</label>
+      <div class="csv-branch-row" id="csvBranchRow" hidden>
+        <label for="csvBranch">Sucursal</label>
+        <select id="csvBranch"><option>Ambato</option><option>Pelileo</option></select>
+        <span class="csv-branch-note">Solo se cambia el precio de la presentación que coincida. Las cantidades y los distintivos de esa sucursal se conservan.</span>
+      </div>
     </div>
     <div class="csv-summary" id="csvSummary"></div>
     <div class="csv-table-wrap" id="csvPreviewWrap" hidden>
@@ -6788,23 +6805,85 @@ function csvAnalizar(texto){
     existen:items.filter(i=>i.estado==="existe").length,
     errores:items.filter(i=>i.estado==="error").length};
 }
+/* Para actualizar precios hay que ubicar la fila exacta de branch_inventory:
+   un producto con varias presentaciones guarda una fila por presentación
+   («Marca|Producto|50 ml»); uno con una sola talla usa la clave base. */
+function csvNormVol(v){
+  return String(v==null?"":v).toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/\s+/g,"").replace(",",".");
+}
+function csvBuscarProducto(brand,name){
+  const k=(brand+"|"+name).toLowerCase();
+  return products.find(p=>pkey(p).toLowerCase()===k)||null;
+}
+function csvClaveProducto(p,volume){
+  const sizes=Array.isArray(p.sizes)&&p.sizes.length?p.sizes:(p.size?[p.size]:[]);
+  if(sizes.length>1){
+    const v=csvNormVol(volume);
+    if(!v)return {clave:null,motivo:"Falta la presentación"};
+    const encontrada=sizes.find(s=>csvNormVol(s)===v);
+    if(!encontrada)return {clave:null,motivo:"La presentación «"+(volume||"")+"» no coincide"};
+    return {clave:pkey(p)+"|"+encontrada};
+  }
+  return {clave:pkey(p)};
+}
+function csvPlanPrecios(){
+  const check=document.getElementById("csvUpdatePrices");
+  const sel=document.getElementById("csvBranch");
+  const salida={activo:!!(check&&check.checked),sucursal:(sel&&sel.value)||adminBranch||"Ambato",plan:[],sinUbicar:[]};
+  if(!salida.activo)return salida;
+  const porClave=new Map();
+  (csvImportState.items||[]).forEach(i=>{
+    if(i.estado!=="existe")return;
+    if(i.price==null){salida.sinUbicar.push({item:i,motivo:"Sin precio en el CSV"});return;}
+    const p=csvBuscarProducto(i.brand,i.name);
+    if(!p){salida.sinUbicar.push({item:i,motivo:"No está en el catálogo"});return;}
+    const r=csvClaveProducto(p,i.volume);
+    if(!r.clave){salida.sinUbicar.push({item:i,motivo:r.motivo});return;}
+    porClave.set(r.clave,{item:i,clave:r.clave});
+  });
+  salida.plan=[...porClave.values()];
+  return salida;
+}
 function csvPintar(){
   const s=csvImportState;
   const res=document.getElementById("csvSummary");
   const wrap=document.getElementById("csvPreviewWrap");
   const tabla=document.getElementById("csvPreview");
   const btn=document.getElementById("csvImportGo");
-  if(!s.items||!s.items.length){res.innerHTML="";wrap.hidden=true;btn.disabled=true;btn.textContent="Importar productos";return;}
+  if(!s.items||!s.items.length){res.innerHTML="";wrap.hidden=true;btn.disabled=true;btn.textContent="Importar productos";s.plan=[];return;}
+  const plan=csvPlanPrecios();
+  s.plan=plan.plan;
+  s.sucursalPlan=plan.sucursal;
+  const enPlan=new Set(plan.plan.map(x=>x.item));
+  const motivoDe=new Map(plan.sinUbicar.map(x=>[x.item,x.motivo]));
   const nombreDelim=s.delim==="\t"?"tabulador":s.delim;
   res.innerHTML=`<span class="ok">${s.nuevos} producto(s) nuevo(s)</span> · <span class="warn">${s.existen} ya en el catálogo</span> · <span class="bad">${s.errores} con datos incompletos</span><br><span style="font-weight:600;color:#8d726c">Separador detectado: ${escapeHTML(nombreDelim)}</span>`;
+  if(plan.activo){
+    res.innerHTML+=`<br><span class="warn">${plan.plan.length} precio(s) se actualizarán en ${escapeHTML(plan.sucursal)}</span>`+
+      (plan.sinUbicar.length?` · <span class="bad">${plan.sinUbicar.length} no se pueden ubicar</span>`:"");
+  }
   const filas=s.items.slice(0,15);
   tabla.innerHTML="<thead><tr><th>Producto</th><th>Marca</th><th>Presentación</th><th>Precio</th><th>Segmento</th><th>Estado</th></tr></thead><tbody>"+
-    filas.map(i=>`<tr class="${i.estado}"><td>${escapeHTML(i.name||"—")}</td><td>${escapeHTML(i.brand||"—")}</td><td>${escapeHTML(i.volume||"—")}</td><td>${i.price==null?"—":"$"+i.price.toFixed(2)}</td><td>${escapeHTML(i.segment)}</td><td>${i.estado==="nuevo"?"✅ Nuevo":(i.estado==="existe"?"↺ "+escapeHTML(i.motivo):"⚠ "+escapeHTML(i.motivo))}</td></tr>`).join("")+
+    filas.map(i=>{
+      let estado;
+      if(i.estado==="nuevo")estado="✅ Nuevo";
+      else if(i.estado==="error")estado="⚠ "+escapeHTML(i.motivo);
+      else if(!plan.activo)estado="↺ Ya está en el catálogo";
+      else if(enPlan.has(i))estado="↻ Actualiza precio";
+      else estado="⚠ "+escapeHTML(motivoDe.get(i)||"No se ubica");
+      return `<tr class="${i.estado}${enPlan.has(i)?" actualiza":""}"><td>${escapeHTML(i.name||"—")}</td><td>${escapeHTML(i.brand||"—")}</td><td>${escapeHTML(i.volume||"—")}</td><td>${i.price==null?"—":"$"+i.price.toFixed(2)}</td><td>${escapeHTML(i.segment)}</td><td>${estado}</td></tr>`;
+    }).join("")+
     "</tbody>";
   if(s.items.length>15)res.innerHTML+=`<br><span style="font-weight:600;color:#8d726c">La vista previa muestra 15 de ${s.items.length} filas.</span>`;
   wrap.hidden=false;
-  btn.disabled=s.nuevos===0;
-  btn.textContent=s.nuevos?`Importar ${s.nuevos} producto(s)`:"No hay productos nuevos";
+  const total=s.nuevos+(plan.activo?plan.plan.length:0);
+  btn.disabled=total===0;
+  if(plan.activo&&plan.plan.length&&s.nuevos)btn.textContent=`Importar ${s.nuevos} nuevos y actualizar ${plan.plan.length} precio(s)`;
+  else if(plan.activo&&plan.plan.length)btn.textContent=`Actualizar ${plan.plan.length} precio(s) en ${plan.sucursal}`;
+  else if(s.nuevos)btn.textContent=`Importar ${s.nuevos} producto(s)`;
+  else btn.textContent="No hay nada para importar";
 }
 async function csvLeer(file){
   const res=document.getElementById("csvSummary");
@@ -6829,7 +6908,10 @@ async function csvLeer(file){
 }
 function csvAbrir(){
   if(!adminSession){alert("Inicia sesión como administrador para importar productos.");return;}
-  csvImportState={delim:";",items:[]};
+  csvImportState={delim:";",items:[],plan:[]};
+  const chk=document.getElementById("csvUpdatePrices");if(chk)chk.checked=false;
+  const fila=document.getElementById("csvBranchRow");if(fila)fila.hidden=true;
+  const sel=document.getElementById("csvBranch");if(sel)sel.value=adminBranch||"Ambato";
   document.getElementById("csvFileName").textContent="";
   document.getElementById("csvFile").value="";
   document.getElementById("csvImportModal").classList.add("open");
@@ -6844,27 +6926,74 @@ function csvCerrar(){
 async function csvImportar(){
   if(!adminSession){alert("Inicia sesión como administrador para importar productos.");return;}
   const nuevos=csvImportState.items.filter(i=>i.estado==="nuevo");
-  if(!nuevos.length)return;
-  if(!confirm(`¿Agregar ${nuevos.length} producto(s) al catálogo compartido? Se verán en la web para todos los visitantes.`))return;
+  const plan=csvPlanPrecios();
+  const sucursal=plan.sucursal;
+  if(!nuevos.length&&!plan.plan.length)return;
+  const resumen=[];
+  if(nuevos.length)resumen.push(`${nuevos.length} producto(s) nuevo(s)`);
+  if(plan.plan.length)resumen.push(`el precio de ${plan.plan.length} presentación(es) en ${sucursal}`);
+  if(!confirm(`¿Aplicar ${resumen.join(" y ")}? Los cambios se verán en la web para todos los visitantes.`))return;
   const btn=document.getElementById("csvImportGo"),texto=btn.textContent;
-  btn.disabled=true;btn.textContent="Importando…";
-  const previos=[...(catalogGlobalData.addedProducts||[])];
-  catalogGlobalData.addedProducts=[...previos,...nuevos.map(i=>({brand:i.brand,name:i.name,volume:i.volume,price:i.price,oldPrice:i.oldPrice,type:i.type,skin:i.skin,actives:i.actives,use:i.use,image:i.image,segments:[i.segment]}))];
-  try{
-    await saveCatalogGlobal();
-  }catch(e){
-    catalogGlobalData.addedProducts=previos;
-    console.error(e);
+  btn.disabled=true;btn.textContent="Guardando…";
+  /* 1) Productos nuevos → catálogo compartido (site_settings). Si falla, se
+     devuelve la lista anterior y no se toca ningún precio. */
+  let previos=null;
+  if(nuevos.length){
+    previos=[...(catalogGlobalData.addedProducts||[])];
+    catalogGlobalData.addedProducts=[...previos,...nuevos.map(i=>({brand:i.brand,name:i.name,volume:i.volume,price:i.price,oldPrice:i.oldPrice,type:i.type,skin:i.skin,actives:i.actives,use:i.use,image:i.image,segments:[i.segment]}))];
+    try{
+      await saveCatalogGlobal();
+    }catch(e){
+      catalogGlobalData.addedProducts=previos;
+      console.error(e);
+      btn.disabled=false;btn.textContent=texto;
+      alert("No se pudo guardar la importación. Comprueba tu sesión de administrador y los permisos de escritura de site_settings en Supabase.");
+      return;
+    }
+    mergeAddedProducts();
+  }
+  /* 2) Precios de las presentaciones que ya existen → branch_inventory.
+     Se conserva la cantidad y los distintivos que ya tenía esa fila. */
+  let preciosOk=0,preciosError=null;
+  if(plan.plan.length){
+    const actuales=branchInventory[sucursal]||{};
+    const filas=plan.plan.map(({clave,item})=>{
+      const fila={branch:sucursal,product_key:clave,price:item.price};
+      if(item.oldPrice!=null)fila.old_price=item.oldPrice;
+      const actual=actuales[clave];
+      if(actual){
+        if(actual.qty!==null&&actual.qty!==undefined&&actual.qty!=="")fila.qty=actual.qty;
+        FLAG_COLUMNS.forEach(c=>{if(SUPPORTED_FLAGS.has(c)&&actual[c]!==undefined)fila[c]=actual[c];});
+      }
+      return fila;
+    });
+    for(let i=0;i<filas.length;i+=200){
+      const lote=filas.slice(i,i+200);
+      const {error}=await supabaseClient.from("branch_inventory").upsert(lote,{onConflict:"branch,product_key"});
+      if(error){preciosError=error;break;}
+      preciosOk+=lote.length;
+    }
+    if(preciosOk)adminBranch=sucursal;
+    const selBranch=document.getElementById("adminBranch");
+    if(selBranch&&preciosOk)selBranch.value=sucursal;
+    try{await loadBranchInventory();applyBranchData(adminBranch);}catch(e){console.error(e);}
+  }
+  try{syncBrandLists();}catch(e){}
+  renderProducts();renderHome();renderBrands();renderCart();adminRows();
+  try{renderAdminBrandChips();}catch(e){}
+  if(preciosError){
+    console.error(preciosError);
     btn.disabled=false;btn.textContent=texto;
-    alert("No se pudo guardar la importación. Comprueba tu sesión de administrador y los permisos de escritura de site_settings en Supabase.");
+    const cuantos=plan.plan.length-preciosOk;
+    const detalle=`${cuantos} precio(s) en ${sucursal}. Comprueba tu sesión y los permisos de la tabla branch_inventory en Supabase.`;
+    alert(nuevos.length?`Se agregaron ${nuevos.length} producto(s) nuevos, pero no se pudieron actualizar ${detalle}`:`No se pudieron actualizar ${detalle}`);
     return;
   }
-  mergeAddedProducts();
-  try{syncBrandLists();}catch(e){}
-  renderProducts();renderHome();renderBrands();adminRows();
-  try{renderAdminBrandChips();}catch(e){}
   csvCerrar();
-  toast(`✔ Tarea realizada: ${nuevos.length} producto(s) importados al catálogo`);
+  const hechas=[];
+  if(nuevos.length)hechas.push(`${nuevos.length} producto(s) nuevos`);
+  if(preciosOk)hechas.push(`${preciosOk} precio(s) de ${sucursal}`);
+  toast(`✔ Tarea realizada: ${hechas.join(" · ")}`);
 }
 function csvPlantilla(){
   const filas=[
@@ -7243,6 +7372,12 @@ document.getElementById("csvFile").addEventListener("change",async e=>{
   const f=e.target.files&&e.target.files[0];
   if(f)await csvLeer(f);
 });
+document.getElementById("csvUpdatePrices").addEventListener("change",e=>{
+  const fila=document.getElementById("csvBranchRow");
+  if(fila)fila.hidden=!e.target.checked;
+  csvPintar();
+});
+document.getElementById("csvBranch").addEventListener("change",csvPintar);
 (function(){
   const drop=document.getElementById("csvDrop");
   if(!drop)return;

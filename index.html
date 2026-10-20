@@ -1036,18 +1036,21 @@ html body #catalogo{margin-top:14px!important}
   .design-img-note:empty{display:none}
   .design-logo-off{display:none!important}
   .glass-category-icon img[data-design-logo]{width:100%;height:100%;object-fit:contain;border-radius:50%;padding:3px;box-sizing:border-box}
-  .design-switch-grid{display:grid;grid-template-columns:1fr;gap:8px}
-  .design-switch-grid button{border:2px solid var(--pink-deep);background:#fff;color:var(--wine);border-radius:999px;padding:11px 14px;font:800 12px inherit;cursor:pointer;transition:background .15s ease}
+  .design-switch-grid{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin:0 0 10px}
+  .design-switch-grid button{border:2px solid var(--pink-deep);background:#fff;color:var(--wine);border-radius:999px;padding:9px 4px;font:800 11px inherit;cursor:pointer;transition:background .15s ease}
   .design-switch-grid button:hover{background:var(--pink-soft)}
-  .visual-design-btn{display:none;position:fixed;right:18px;bottom:192px;z-index:45;border:0;border-radius:999px;padding:12px 16px;background:#7c3aed;color:#fff;font-weight:900;box-shadow:0 8px 24px #0003;cursor:pointer}
-  body.visual-edit-mode .visual-design-btn{display:block}
-  @media(max-width:560px){.visual-design-btn{right:12px;bottom:192px;font-size:12px;padding:11px 14px}}
+  .design-switch-grid button.active{background:var(--wine);border-color:var(--wine);color:#fff}
+  .visual-design-btn,.visual-admin-btn{display:none;position:fixed;right:18px;z-index:45;border:0;border-radius:999px;padding:12px 16px;font-weight:900;box-shadow:0 8px 24px #0003;cursor:pointer}
+  .visual-design-btn{bottom:192px;background:#7c3aed;color:#fff}
+  .visual-admin-btn{bottom:249px;background:var(--wine);color:#fff}
+  body.visual-edit-mode .visual-design-btn,body.visual-edit-mode .visual-admin-btn{display:block}
+  @media(max-width:560px){.visual-design-btn{right:12px;bottom:192px;font-size:12px;padding:11px 14px}.visual-admin-btn{right:12px;bottom:246px;font-size:12px;padding:11px 14px}}
 </style>
 
 </head>
 <body>
 <div class="visual-edit-hint"><span>MODO EDICIÓN: abre el menú ✎ de cada tarjeta para editar, ocultar/mostrar o retirar el producto.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="visual-add-btn" id="visualAddProduct" type="button">＋ Agregar producto</button><button class="visual-restore-btn" id="visualRestoreDeleted" type="button">♻ Recuperar productos eliminados</button></div></div>
-<button class="visual-save-btn" id="visualSaveChanges" type="button">💾 Guardar cambios y terminar</button><button class="visual-design-btn" id="visualGoDesign" type="button">Editor de diseño</button><button class="visual-edit-exit" id="visualEditExit" type="button">✓ Terminar edición</button>
+<button class="visual-save-btn" id="visualSaveChanges" type="button">💾 Guardar cambios y terminar</button><button class="visual-design-btn" id="visualGoDesign" type="button" title="Editor de diseño">🎨 Diseño</button><button class="visual-admin-btn" id="visualGoAdmin" type="button" title="Panel de administración">⚙ General</button><button class="visual-edit-exit" id="visualEditExit" type="button">✓ Terminar edición</button>
 <div class="visual-product-modal" id="visualProductModal" role="dialog" aria-modal="true" aria-labelledby="visualProductTitle">
   <form class="visual-product-form" id="visualProductForm">
     <h2 id="visualProductTitle">Editar producto</h2>
@@ -1081,6 +1084,12 @@ html body #catalogo{margin-top:14px!important}
     </div>
   </div>
   <div class="design-editor-body">
+    <!-- Cambiar entre los tres menús de edición desde cualquiera de ellos -->
+    <div class="design-switch-grid" id="designSwitchGrid" role="tablist" aria-label="Menú de edición">
+      <button type="button" data-go="diseno" class="active" title="Editor de diseño (estás aquí)">🎨 Diseño</button>
+      <button type="button" data-go="productos" title="Editor visual de las tarjetas del catálogo">✎ Visual</button>
+      <button type="button" data-go="admin" title="Panel de administración">⚙ General</button>
+    </div>
     <p class="design-editor-hint" id="designEditorHint">Haz clic en cualquier elemento de la página para editarlo.</p>
     <div class="design-editor-selected" id="designEditorSelected"></div>
     <div class="design-editor-controls" id="designEditorControls">
@@ -1166,12 +1175,6 @@ html body #catalogo{margin-top:14px!important}
       <button type="button" data-add="banner"><span>📢</span>Banner</button>
     </div>
     <button type="button" class="design-delete-btn" id="deDeleteElement">🗑 Eliminar este elemento de la página</button>
-    <!-- Saltar de un menú de edición a otro sin pasar por el administrador -->
-    <div class="design-section-title">Cambiar de menú</div>
-    <div class="design-switch-grid" id="designSwitchGrid">
-      <button type="button" data-go="productos">Editar tarjetas del catálogo</button>
-      <button type="button" data-go="admin">Panel de administración</button>
-    </div>
   </div>
   <div class="design-editor-footer">
     <button type="button" id="deSaveAll" class="design-save-all">💾 Guardar diseño</button>
@@ -6455,6 +6458,21 @@ async function openAdmin(){
     alert("El administrador seguro todavía no está configurado. Primero conecta este archivo con tu proyecto de Supabase y ejecuta el SQL de seguridad incluido.");
     return;
   }
+  /* Si la sesión sigue abierta (se pasó al editor de diseño o al modo visual),
+     se vuelve directo al panel sin pedir la contraseña otra vez. */
+  if(adminSession){
+    try{
+      const {data}=await supabaseClient.auth.getSession();
+      if(!data||!data.session)adminSession=null;
+    }catch(e){}
+    if(adminSession){
+      try{if(typeof adminRows==="function")adminRows();}catch(e){}
+      try{syncAdminPendingBadge();renderAdminBrandChips();}catch(e){}
+      document.getElementById("adminBackdrop").classList.add("open");
+      document.body.style.overflow="hidden";
+      return;
+    }
+  }
   document.getElementById("adminEmail").value="";document.getElementById("adminPassword").value="";document.getElementById("adminLoginError").textContent="";
   document.getElementById("adminLoginBackdrop").classList.add("open");document.body.style.overflow="hidden";setTimeout(()=>document.getElementById("adminEmail").focus(),50);
 }
@@ -7243,6 +7261,7 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     document.body.classList.add("design-mode-open");
     markEditable();
     panel.setAttribute("aria-hidden","false");
+    marcarMenu("diseno");
     hintEl.style.display="block";selectedInfo.style.display="none";
     imgGroup.style.display="none";textGroup.style.display="none";
     document.getElementById("deTextCaseGroup").style.display="none";
@@ -7573,22 +7592,23 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
     setTimeout(openPanel,400);
   });
 
-  /* ===== SALTO ENTRE MENÚS DE EDICIÓN =====
-     Diseño <-> tarjetas <-> administración directamente, sin tener que reabrir
-     el panel de administración ni volver a iniciar sesión cada vez. */
+  /* ===== SALTO ENTRE LOS TRES MENÚS DE EDICIÓN =====
+     Diseño <-> visual <-> general desde cualquiera de ellos, sin reabrir el
+     panel de administración ni volver a iniciar sesión cada vez. */
+  function marcarMenu(tipo){
+    document.querySelectorAll("#designSwitchGrid button[data-go]").forEach(b=>{
+      const activo=b.dataset.go===tipo;
+      b.classList.toggle("active",activo);
+      b.setAttribute("aria-selected",activo?"true":"false");
+    });
+  }
   function irA(tipo){
+    if(tipo==="diseno"){openPanel();return;}
     closePanel();
+    if(typeof visualEditMode!=="undefined"&&visualEditMode)setVisualEditMode(false);
     if(tipo==="productos"){setVisualEditMode(true);return;}
-    const backdrop=document.getElementById("adminBackdrop");
-    if(typeof adminSession!=="undefined"&&adminSession&&backdrop){
-      try{if(typeof adminRows==="function")adminRows();}catch(e){}
-      try{syncAdminPendingBadge();renderAdminBrandChips();}catch(e){}
-      backdrop.classList.add("open");
-      document.body.style.overflow="hidden";
-      toast("⚙ Panel de administración abierto");
-      return;
-    }
-    setTimeout(openAdmin,350);
+    /* openAdmin() reutiliza la sesión abierta: solo pide contraseña si no hay */
+    openAdmin();
   }
   document.getElementById("designSwitchGrid").addEventListener("click",e=>{
     const b=e.target.closest("button[data-go]");
@@ -7596,6 +7616,8 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape"){closeCart();closeAd
   });
   const visualGoDesign=document.getElementById("visualGoDesign");
   if(visualGoDesign)visualGoDesign.addEventListener("click",()=>{setVisualEditMode(false);openPanel();});
+  const visualGoAdmin=document.getElementById("visualGoAdmin");
+  if(visualGoAdmin)visualGoAdmin.addEventListener("click",()=>{irA("admin");});
 
   /* renderBrands() y renderProducts() repintan el HTML y borraban lo aplicado:
       este gancho vuelve a dibujar el diseño (y la marca editable) al instante. */

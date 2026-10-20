@@ -1047,6 +1047,88 @@ html body #catalogo{margin-top:14px!important}
   @media(max-width:560px){.visual-design-btn{right:12px;bottom:192px;font-size:12px;padding:11px 14px}.visual-admin-btn{right:12px;bottom:246px;font-size:12px;padding:11px 14px}}
 </style>
 
+<style id="latipiel-glass-csv-v1">
+  /* --- Botones de acción con verdadero efecto liquid glass ---
+     «Guardar cambios», «Terminar edición», «Diseño» y «General» eran pastillas
+     de color plano. Ahora llevan fondo translúcido, desenfoque del fondo, borde
+     de luz y brillo interior, como el resto de la interfaz.
+     Para deshacer: borra este bloque. */
+  .admin-side-btn.primary,
+  .admin-top-actions .admin-save,
+  .admin-login-submit,
+  .visual-save-btn,
+  .visual-edit-exit,
+  .visual-design-btn,
+  .visual-admin-btn,
+  #adminDesignEditor{
+    background:linear-gradient(145deg,rgba(92,196,199,.86),rgba(44,139,145,.8))!important;
+    border:1px solid rgba(255,255,255,.7)!important;
+    color:#fff!important;
+    text-shadow:0 1px 2px rgba(18,58,62,.35)!important;
+    -webkit-backdrop-filter:blur(18px) saturate(180%)!important;
+    backdrop-filter:blur(18px) saturate(180%)!important;
+    box-shadow:0 12px 28px rgba(47,143,149,.28),inset 0 1.5px 0 rgba(255,255,255,.75),inset 0 -1px 0 rgba(255,255,255,.22)!important;
+    transition:transform .15s ease,filter .15s ease;
+  }
+  /* «Terminar edición» queda como vidrio claro: es la acción secundaria */
+  .visual-edit-exit{
+    background:linear-gradient(145deg,rgba(255,255,255,.85),rgba(255,255,255,.42))!important;
+    color:#2f6f74!important;text-shadow:none!important;
+    box-shadow:0 12px 28px rgba(72,112,120,.2),inset 0 1.5px 0 rgba(255,255,255,.95)!important;
+  }
+  .visual-design-btn,#adminDesignEditor{
+    background:linear-gradient(145deg,rgba(163,124,247,.85),rgba(108,58,196,.8))!important;
+    box-shadow:0 12px 28px rgba(108,58,196,.32),inset 0 1.5px 0 rgba(255,255,255,.6)!important;
+  }
+  .visual-admin-btn{
+    background:linear-gradient(145deg,rgba(150,84,74,.88),rgba(95,36,23,.82))!important;
+    box-shadow:0 12px 28px rgba(95,36,23,.32),inset 0 1.5px 0 rgba(255,255,255,.5)!important;
+  }
+  .visual-save-btn:hover,.visual-edit-exit:hover,.visual-design-btn:hover,.visual-admin-btn:hover,
+  .admin-side-btn.primary:hover,#adminDesignEditor:hover{transform:translateY(-1px);filter:brightness(1.07)}
+  .visual-save-btn:active,.visual-edit-exit:active,.visual-design-btn:active,.visual-admin-btn:active{transform:translateY(0) scale(.975)}
+  @media(prefers-reduced-motion:reduce){
+    .visual-save-btn,.visual-edit-exit,.visual-design-btn,.visual-admin-btn{transition:none}
+    .visual-save-btn:hover,.visual-edit-exit:hover,.visual-design-btn:hover,.visual-admin-btn:hover{transform:none}
+  }
+
+  /* --- Importar productos desde un CSV del proveedor --- */
+  .csv-modal{display:none;position:fixed;inset:0;z-index:160;background:rgba(58,32,32,.55);place-items:center;padding:16px;overflow:auto;-webkit-backdrop-filter:blur(6px);backdrop-filter:blur(6px)}
+  .csv-modal.open{display:grid}
+  .csv-panel{width:min(860px,100%);max-height:92vh;overflow:auto;padding:22px;border-radius:24px;
+    background:linear-gradient(135deg,rgba(255,255,255,.94),rgba(241,250,248,.86));
+    border:1px solid rgba(255,255,255,.9);
+    box-shadow:0 26px 70px rgba(72,112,120,.26),inset 0 1.5px 0 rgba(255,255,255,.96);
+    -webkit-backdrop-filter:blur(22px) saturate(170%);backdrop-filter:blur(22px) saturate(170%)}
+  .csv-head{display:flex;align-items:center;justify-content:space-between;gap:12px}
+  .csv-head h2{margin:0;color:var(--wine-deep);font-size:20px}
+  .csv-close{border:0;background:var(--pink-soft);color:var(--wine);border-radius:999px;width:34px;height:34px;font:900 15px inherit;cursor:pointer}
+  .csv-help{margin:10px 0 14px;color:var(--muted);font-size:12px;line-height:1.55}
+  .csv-help code{background:rgba(122,59,52,.08);border-radius:5px;padding:1px 5px;font-size:11px}
+  .csv-drop{border:2px dashed rgba(122,59,52,.28);border-radius:18px;padding:22px 16px;text-align:center;cursor:pointer;background:rgba(255,255,255,.5);transition:background .15s ease,border-color .15s ease}
+  .csv-drop:hover,.csv-drop.over{background:rgba(189,232,216,.42);border-color:var(--teal)}
+  .csv-drop input{display:none}
+  .csv-drop p{margin:0;color:var(--wine);font-size:13px}
+  .csv-drop b{color:var(--teal-dark)}
+  .csv-actions-top{display:flex;align-items:center;gap:10px;margin:10px 0 0;flex-wrap:wrap}
+  .csv-ghost{border:2px solid var(--pink-deep);background:transparent;color:var(--wine);border-radius:999px;padding:8px 13px;font:800 11px inherit;cursor:pointer}
+  .csv-file{font-size:11px;color:var(--muted);font-weight:700}
+  .csv-summary{margin:12px 0 0;font-size:12px;color:var(--wine);font-weight:700;line-height:1.6}
+  .csv-summary .ok{color:#1f7a4d}.csv-summary .warn{color:#a8581f}.csv-summary .bad{color:#b04b45}
+  .csv-table-wrap{max-height:38vh;overflow:auto;margin-top:10px;border:1px solid rgba(122,59,52,.16);border-radius:14px;background:rgba(255,255,255,.72)}
+  .csv-table{width:100%;border-collapse:collapse;font-size:11px}
+  .csv-table th{position:sticky;top:0;background:#fdf0ee;color:var(--wine);text-align:left;padding:8px 9px;font-weight:900;white-space:nowrap}
+  .csv-table td{padding:7px 9px;border-top:1px solid rgba(122,59,52,.1);color:var(--ink);vertical-align:top}
+  .csv-table tr.existe td{background:rgba(255,243,205,.5)}
+  .csv-table tr.error td{background:rgba(255,225,225,.6)}
+  .csv-foot{display:flex;gap:10px;justify-content:flex-end;margin-top:16px;flex-wrap:wrap}
+  .csv-foot button{border:0;border-radius:999px;padding:12px 18px;font:900 12px inherit;cursor:pointer}
+  .csv-cancel{background:var(--pink-soft);color:var(--wine)}
+  .csv-import{background:var(--teal);color:#fff}
+  .csv-import:disabled{opacity:.45;cursor:not-allowed}
+  @media(max-width:560px){.csv-panel{padding:16px}.csv-head h2{font-size:17px}.csv-table{font-size:10px}}
+</style>
+
 </head>
 <body>
 <div class="visual-edit-hint"><span>MODO EDICIÓN: abre el menú ✎ de cada tarjeta para editar, ocultar/mostrar o retirar el producto.</span><div style="display:flex;gap:8px;flex-wrap:wrap"><button class="visual-add-btn" id="visualAddProduct" type="button">＋ Agregar producto</button><button class="visual-restore-btn" id="visualRestoreDeleted" type="button">♻ Recuperar productos eliminados</button></div></div>
@@ -1531,6 +1613,7 @@ html body #catalogo{margin-top:14px!important}
         <p class="admin-brand-note">Se publica al pulsar «Guardar cambios». Mientras no tenga productos, la marca aparece como «Próximamente» en el catálogo y en el muro de logos.</p>
       </div>
       <div class="admin-brand-chips" id="adminBrandChips"></div>
+      <button class="admin-side-btn" id="adminImportCsv" type="button">📥 Importar productos desde CSV</button>
       <button class="admin-side-btn" id="adminExport" type="button">Exportar datos</button>
       <button class="admin-side-btn primary" id="adminExportSupabase" type="button" title="Sube a Supabase, de una sola vez: los precios de todas las presentaciones para Ambato y Pelileo, los cambios visuales del catálogo (ocultos, eliminados, ediciones y productos añadidos) y el ajuste de precios visibles. No toca las cantidades ni los distintivos ya guardados.">⬆ Exportar datos a Supabase</button>
       <button class="admin-side-btn" id="adminRestoreDeleted" type="button">♻ Recuperar productos eliminados</button>
@@ -1549,6 +1632,31 @@ html body #catalogo{margin-top:14px!important}
       <div class="admin-grid" id="adminGrid"></div>
     </main>
   </div>
+</div>
+<div class="csv-modal" id="csvImportModal" role="dialog" aria-modal="true" aria-labelledby="csvImportTitle">
+  <section class="csv-panel">
+    <header class="csv-head">
+      <h2 id="csvImportTitle">📥 Importar productos desde CSV</h2>
+      <button type="button" class="csv-close" id="csvImportClose" aria-label="Cerrar">✕</button>
+    </header>
+    <p class="csv-help">Elige el archivo que te envió el proveedor. Se reconocen las columnas de <b>marca</b>, <b>producto</b>, <b>presentación</b>, <b>precio</b>, <b>precio anterior</b>, <b>segmento</b>, <b>tipo</b>, <b>piel</b>, <b>activos</b>, <b>uso</b> e <b>imagen</b>, con separador <code>;</code>, <code>,</code> o tabulador. Solo se agregan productos nuevos: los que ya existen (misma marca y nombre) se omiten.</p>
+    <div class="csv-drop" id="csvDrop">
+      <input type="file" id="csvFile" accept=".csv,.txt,text/csv,text/plain">
+      <p>Arrastra el archivo aquí o <b>tócalo para elegirlo</b></p>
+    </div>
+    <div class="csv-actions-top">
+      <button type="button" class="csv-ghost" id="csvTemplate">Descargar plantilla</button>
+      <span class="csv-file" id="csvFileName"></span>
+    </div>
+    <div class="csv-summary" id="csvSummary"></div>
+    <div class="csv-table-wrap" id="csvPreviewWrap" hidden>
+      <table class="csv-table" id="csvPreview"></table>
+    </div>
+    <footer class="csv-foot">
+      <button type="button" class="csv-cancel" id="csvCancel">Cancelar</button>
+      <button type="button" class="csv-import" id="csvImportGo" disabled>Importar productos</button>
+    </footer>
+  </section>
 </div>
 <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
 <script>
@@ -6567,6 +6675,211 @@ async function exportAdminData(){
   toast(`✔ Tarea realizada: ${rows.length} registros exportados en CSV`);
 }
 
+/* ===== IMPORTAR PRODUCTOS DESDE UN CSV DEL PROVEEDOR =====
+   Cada proveedor manda su lista a su manera: separador «;» o «,», tildes o no,
+   precios con «$» o con coma decimal, columnas con nombres distintos. Aquí se
+   lee igual: se detecta el separador, se buscan las columnas por su nombre y se
+   enseña un resumen antes de tocar nada. Solo se AGREGAN productos nuevos; los
+   que ya están en el catálogo (misma marca y nombre) se omiten, así que puedes
+   volver a subir la misma lista sin duplicar nada. */
+const CSV_ALIASES={
+  oldPrice:["precio_anterior","precio_lista","precio_normal","antes","old_price","precio_antes","precio_regular","pvp_anterior"],
+  price:["precio","price","pvp","precio_venta","precio_unitario","valor","precio_final","precio_publico"],
+  brand:["marca","brand","laboratorio","lab","fabricante","distribuidor"],
+  name:["producto","nombre","name","descripcion","detalle","articulo","producto_nombre","nombre_producto"],
+  volume:["presentacion","volumen","tamano","contenido","medida","size","gramaje","capacidad"],
+  segment:["segmento","categoria","segment","linea","familia"],
+  type:["tipo","envase","type","tipo_envase","forma"],
+  skin:["piel","tipo_de_piel","skin","indicado_para"],
+  actives:["activos","componentes","ingredientes","actives","principios_activos","composicion"],
+  use:["uso","modo_de_uso","indicaciones","use","aplicacion"],
+  image:["imagen","image","foto","url","url_imagen","url_de_la_imagen","link","enlace"]
+};
+const CSV_SEGMENTOS=[
+  ["Fotoprotección",["solar","fotoproteccion","protector","spf","fps","fotoprotector"]],
+  ["Acné / piel grasa",["acne","grasa","antiacne","seborrea","imperfecciones"]],
+  ["Anti-edad",["antiedad","anti_edad","arrugas","antiarrugas","firmeza","reafirmante"]],
+  ["Piel sensible / atópica",["sensible","atopica","reactiva","rosacea","calmante"]],
+  ["Cuidado capilar",["capilar","cabello","pelo","champu","anticaida"]],
+  ["Línea pediátrica",["pediatrica","bebe","bebes","infantil","nino","ninos"]],
+  ["Hiperpigmentación",["manchas","hiperpigmentacion","despigmentante","melasma","pigmentacion"]],
+  ["Facial y corporal",["facial","corporal","cuerpo","rostro"]],
+  ["Hidratación / limpieza",["hidratacion","limpieza","limpiador","higiene","nutricion"]]
+];
+let csvImportState={delim:";",items:[]};
+let csvAbriendoArchivo=false;
+function csvNorm(v){
+  return String(v==null?"":v).trim().toLowerCase()
+    .normalize("NFD").replace(/[\u0300-\u036f]/g,"")
+    .replace(/[^a-z0-9]+/g,"_").replace(/^_+|_+$/g,"");
+}
+function csvDelim(texto){
+  const linea=(texto.split(/\r?\n/).find(l=>l.trim())||"");
+  const cuenta={";":0,",":0,"\t":0};
+  for(const ch of linea)if(Object.prototype.hasOwnProperty.call(cuenta,ch))cuenta[ch]++;
+  const orden=Object.keys(cuenta).sort((a,b)=>cuenta[b]-cuenta[a]);
+  return cuenta[orden[0]]>0?orden[0]:";";
+}
+function csvFilas(texto,delim){
+  const filas=[];let fila=[],campo="",comillas=false;
+  for(let i=0;i<texto.length;i++){
+    const c=texto[i];
+    if(comillas){
+      if(c==='"'){if(texto[i+1]==='"'){campo+='"';i++;}else comillas=false;}
+      else campo+=c;
+    }else if(c==='"'){comillas=true;}
+    else if(c===delim){fila.push(campo);campo="";}
+    else if(c==="\n"){fila.push(campo);filas.push(fila);fila=[];campo="";}
+    else if(c!=="\r"){campo+=c;}
+  }
+  if(campo!==""||fila.length){fila.push(campo);filas.push(fila);}
+  return filas.filter(f=>f.some(v=>String(v).trim()!==""));
+}
+function csvPrecio(v){
+  let s=String(v==null?"":v).trim().replace(/[^\d.,-]/g,"");
+  if(!s)return null;
+  const punto=s.lastIndexOf("."),coma=s.lastIndexOf(",");
+  if(punto>-1&&coma>-1){
+    if(coma>punto)s=s.replace(/\./g,"").replace(",",".");
+    else s=s.replace(/,/g,"");
+  }else if(coma>-1){
+    s=s.split(",").length===2?s.replace(",","."):s.replace(/,/g,"");
+  }
+  const n=Number(s);
+  return isFinite(n)&&n>0?Math.round(n*100)/100:null;
+}
+function csvSegmento(txt){
+  const n=csvNorm(txt);
+  if(!n)return "Hidratación / limpieza";
+  for(const [seg] of CSV_SEGMENTOS)if(csvNorm(seg)===n)return seg;
+  for(const [seg,pistas] of CSV_SEGMENTOS)if(pistas.some(p=>n.includes(p)))return seg;
+  return "Hidratación / limpieza";
+}
+function csvAnalizar(texto){
+  const limpio=String(texto||"").replace(/^\uFEFF/,"");
+  const delim=csvDelim(limpio);
+  const filas=csvFilas(limpio,delim);
+  if(filas.length<2)return {error:"El archivo no tiene filas de datos."};
+  const cabeceras=filas[0].map(csvNorm);
+  const mapa={},usadas=new Set();
+  Object.keys(CSV_ALIASES).forEach(clave=>{
+    const alias=CSV_ALIASES[clave];
+    let idx=cabeceras.findIndex((h,i)=>!usadas.has(i)&&alias.includes(h));
+    if(idx<0)idx=cabeceras.findIndex((h,i)=>!usadas.has(i)&&alias.some(a=>h.includes(a)));
+    if(idx>=0){mapa[clave]=idx;usadas.add(idx);}
+  });
+  if(mapa.name==null||mapa.brand==null){
+    return {error:"No encontré las columnas de producto y marca. Cabeceras leídas: «"+filas[0].join(" · ")+"». Renómbralas como «Producto» y «Marca», o descarga la plantilla."};
+  }
+  const vistos=new Set();
+  const items=filas.slice(1).map(f=>{
+    const d=k=>mapa[k]==null?"":String(f[mapa[k]]==null?"":f[mapa[k]]).trim();
+    const brand=d("brand"),name=d("name"),clave=(brand+"|"+name).toLowerCase();
+    let estado="nuevo",motivo="";
+    if(!brand||!name){estado="error";motivo=!name?"Falta el nombre":"Falta la marca";}
+    else if(vistos.has(clave)){estado="error";motivo="Repetido en el archivo";}
+    else if(products.some(p=>pkey(p).toLowerCase()===clave)){estado="existe";motivo="Ya está en el catálogo";}
+    if(estado==="nuevo")vistos.add(clave);
+    return {brand,name,volume:d("volume"),price:csvPrecio(d("price")),oldPrice:csvPrecio(d("oldPrice")),
+      segment:csvSegmento(d("segment")),type:d("type"),skin:d("skin"),actives:d("actives"),use:d("use"),image:d("image"),estado,motivo};
+  });
+  return {delim,items,total:items.length,
+    nuevos:items.filter(i=>i.estado==="nuevo").length,
+    existen:items.filter(i=>i.estado==="existe").length,
+    errores:items.filter(i=>i.estado==="error").length};
+}
+function csvPintar(){
+  const s=csvImportState;
+  const res=document.getElementById("csvSummary");
+  const wrap=document.getElementById("csvPreviewWrap");
+  const tabla=document.getElementById("csvPreview");
+  const btn=document.getElementById("csvImportGo");
+  if(!s.items||!s.items.length){res.innerHTML="";wrap.hidden=true;btn.disabled=true;btn.textContent="Importar productos";return;}
+  const nombreDelim=s.delim==="\t"?"tabulador":s.delim;
+  res.innerHTML=`<span class="ok">${s.nuevos} producto(s) nuevo(s)</span> · <span class="warn">${s.existen} ya en el catálogo</span> · <span class="bad">${s.errores} con datos incompletos</span><br><span style="font-weight:600;color:#8d726c">Separador detectado: ${escapeHTML(nombreDelim)}</span>`;
+  const filas=s.items.slice(0,15);
+  tabla.innerHTML="<thead><tr><th>Producto</th><th>Marca</th><th>Presentación</th><th>Precio</th><th>Segmento</th><th>Estado</th></tr></thead><tbody>"+
+    filas.map(i=>`<tr class="${i.estado}"><td>${escapeHTML(i.name||"—")}</td><td>${escapeHTML(i.brand||"—")}</td><td>${escapeHTML(i.volume||"—")}</td><td>${i.price==null?"—":"$"+i.price.toFixed(2)}</td><td>${escapeHTML(i.segment)}</td><td>${i.estado==="nuevo"?"✅ Nuevo":(i.estado==="existe"?"↺ "+escapeHTML(i.motivo):"⚠ "+escapeHTML(i.motivo))}</td></tr>`).join("")+
+    "</tbody>";
+  if(s.items.length>15)res.innerHTML+=`<br><span style="font-weight:600;color:#8d726c">La vista previa muestra 15 de ${s.items.length} filas.</span>`;
+  wrap.hidden=false;
+  btn.disabled=s.nuevos===0;
+  btn.textContent=s.nuevos?`Importar ${s.nuevos} producto(s)`:"No hay productos nuevos";
+}
+async function csvLeer(file){
+  const res=document.getElementById("csvSummary");
+  document.getElementById("csvFileName").textContent=file.name+" · "+Math.max(1,Math.round(file.size/1024))+" KB";
+  try{
+    const buf=await file.arrayBuffer();
+    let texto=new TextDecoder("utf-8").decode(buf);
+    if(texto.indexOf("\uFFFD")>-1){try{texto=new TextDecoder("windows-1252").decode(buf);}catch(e){}}
+    const analisis=csvAnalizar(texto);
+    if(analisis.error){
+      csvImportState={delim:";",items:[]};
+      csvPintar();
+      res.innerHTML='<span class="bad">⚠ '+escapeHTML(analisis.error)+"</span>";
+      return;
+    }
+    csvImportState=analisis;
+    csvPintar();
+  }catch(e){
+    console.error(e);
+    res.innerHTML='<span class="bad">⚠ No se pudo leer el archivo. Guarda la lista como CSV (UTF-8) y vuelve a intentarlo.</span>';
+  }
+}
+function csvAbrir(){
+  if(!adminSession){alert("Inicia sesión como administrador para importar productos.");return;}
+  csvImportState={delim:";",items:[]};
+  document.getElementById("csvFileName").textContent="";
+  document.getElementById("csvFile").value="";
+  document.getElementById("csvImportModal").classList.add("open");
+  document.body.style.overflow="hidden";
+  csvPintar();
+}
+function csvCerrar(){
+  document.getElementById("csvImportModal").classList.remove("open");
+  const adminAbierto=document.getElementById("adminBackdrop").classList.contains("open");
+  document.body.style.overflow=adminAbierto?"hidden":"";
+}
+async function csvImportar(){
+  if(!adminSession){alert("Inicia sesión como administrador para importar productos.");return;}
+  const nuevos=csvImportState.items.filter(i=>i.estado==="nuevo");
+  if(!nuevos.length)return;
+  if(!confirm(`¿Agregar ${nuevos.length} producto(s) al catálogo compartido? Se verán en la web para todos los visitantes.`))return;
+  const btn=document.getElementById("csvImportGo"),texto=btn.textContent;
+  btn.disabled=true;btn.textContent="Importando…";
+  const previos=[...(catalogGlobalData.addedProducts||[])];
+  catalogGlobalData.addedProducts=[...previos,...nuevos.map(i=>({brand:i.brand,name:i.name,volume:i.volume,price:i.price,oldPrice:i.oldPrice,type:i.type,skin:i.skin,actives:i.actives,use:i.use,image:i.image,segments:[i.segment]}))];
+  try{
+    await saveCatalogGlobal();
+  }catch(e){
+    catalogGlobalData.addedProducts=previos;
+    console.error(e);
+    btn.disabled=false;btn.textContent=texto;
+    alert("No se pudo guardar la importación. Comprueba tu sesión de administrador y los permisos de escritura de site_settings en Supabase.");
+    return;
+  }
+  mergeAddedProducts();
+  try{syncBrandLists();}catch(e){}
+  renderProducts();renderHome();renderBrands();adminRows();
+  try{renderAdminBrandChips();}catch(e){}
+  csvCerrar();
+  toast(`✔ Tarea realizada: ${nuevos.length} producto(s) importados al catálogo`);
+}
+function csvPlantilla(){
+  const filas=[
+    ["marca","producto","presentacion","precio","precio_anterior","segmento","tipo","piel","activos","uso","imagen"],
+    ["Marca del proveedor","Nombre exacto del producto","50 ml","12,50","15,00","Fotoprotección","tube","Todo tipo de piel","Filtros solares","Aplicar generosamente antes de exponerse al sol.",""],
+    ["Otra marca","Limpiador facial suave","400 ml","19,90","","Hidratación / limpieza","bottle","Piel sensible","Agua micelar, glicerina","Empapar un algodón y pasar por el rostro.",""]
+  ];
+  const esc=v=>{v=v==null?"":String(v);return /[";\r\n]/.test(v)?'"'+v.replace(/"/g,'""')+'"':v;};
+  const csv="\ufeff"+filas.map(r=>r.map(esc).join(";")).join("\r\n");
+  const blob=new Blob([csv],{type:"text/csv;charset=utf-8"}),url=URL.createObjectURL(blob),a=document.createElement("a");
+  a.href=url;a.download="latipiel-plantilla-productos.csv";document.body.appendChild(a);a.click();a.remove();
+  setTimeout(()=>URL.revokeObjectURL(url),1000);
+  toast("Plantilla CSV descargada");
+}
+
 /* ===== EXPORTAR TODOS LOS DATOS A SUPABASE CON UN SOLO CLIC =====
    «Exportar datos» (de arriba) BAJA un CSV. Este BUBA lo que hoy vive en el
    archivo a la base de datos, en tres pasos:
@@ -6920,6 +7233,33 @@ document.getElementById("adminClearFilters").addEventListener("click",()=>{docum
 document.getElementById("adminSave").addEventListener("click",saveAdminChanges);
 document.getElementById("adminResetBranch").addEventListener("click",resetAdminBranch);
 document.getElementById("adminExport").addEventListener("click",exportAdminData);
+document.getElementById("adminImportCsv").addEventListener("click",csvAbrir);
+document.getElementById("csvImportClose").addEventListener("click",csvCerrar);
+document.getElementById("csvCancel").addEventListener("click",csvCerrar);
+document.getElementById("csvImportModal").addEventListener("click",e=>{if(e.target.id==="csvImportModal")csvCerrar();});
+document.getElementById("csvTemplate").addEventListener("click",csvPlantilla);
+document.getElementById("csvImportGo").addEventListener("click",csvImportar);
+document.getElementById("csvFile").addEventListener("change",async e=>{
+  const f=e.target.files&&e.target.files[0];
+  if(f)await csvLeer(f);
+});
+(function(){
+  const drop=document.getElementById("csvDrop");
+  if(!drop)return;
+  drop.addEventListener("click",()=>{
+    if(csvAbriendoArchivo)return;
+    csvAbriendoArchivo=true;
+    document.getElementById("csvFile").click();
+    setTimeout(()=>{csvAbriendoArchivo=false;},400);
+  });
+  ["dragenter","dragover"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.add("over");}));
+  ["dragleave","dragend"].forEach(ev=>drop.addEventListener(ev,e=>{e.preventDefault();drop.classList.remove("over");}));
+  drop.addEventListener("drop",async e=>{
+    e.preventDefault();drop.classList.remove("over");
+    const f=e.dataTransfer&&e.dataTransfer.files&&e.dataTransfer.files[0];
+    if(f)await csvLeer(f);
+  });
+})();
 document.getElementById("adminExportSupabase").addEventListener("click",exportAllToSupabase);
 document.getElementById("adminRefresh").addEventListener("click",async()=>{await loadBranchInventory();applyBranchData(adminBranch);renderProducts();renderBrands();renderHome();renderCart();adminRows();toast("✔ Tarea realizada: datos actualizados");});
 document.getElementById("adminPrices").addEventListener("click",togglePrices);

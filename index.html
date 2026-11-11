@@ -2107,10 +2107,14 @@ const DERMOFARMA=[
 {"name":"Ac. Nítrico 15%","segments":["Facial y corporal"],"skin":"Uso profesional médico controlado (cauterizante).","actives":"Ácido nítrico 15%.","use":"Fórmula de acción cauterizante utilizada en el tratamiento localizado de verrugas plantares, favoreciendo la destrucción química del tejido afectado. Requiere aplicación profesional controlada.","routine":"Solo aplicación profesional controlada.","benefits":["Cauterizante localizado","Verrugas plantares","Aplicación profesional controlada"],"type":"bottle","volume":"30 ml"},
 {"name":"Ac. Nítrico 68%","segments":["Facial y corporal"],"skin":"Uso profesional médico controlado (cauterizante corrosivo).","actives":"Ácido nítrico 68%.","use":"Fórmula de acción cauterizante utilizada para la destrucción química localizada de tejido, principalmente en el tratamiento de verrugas plantares. Requiere aplicación profesional controlada por su alta capacidad corrosiva.","routine":"Solo aplicación profesional controlada.","benefits":["Destrucción química localizada","Verrugas plantares","Alta capacidad corrosiva: solo profesional"],"type":"bottle","volume":"50 ml"},
 {"name":"Ac. Salicílico 17% + Ac. Láctico 17%","segments":["Facial y corporal"],"skin":"Uso profesional médico controlado (queratolítico verrugal).","actives":"Ácido salicílico 17% y ácido láctico 17%.","use":"Ideal para tratar verrugas comunes y plantares, ayudando a eliminar el tejido hiperqueratósico mediante acción queratolítica y citotóxica.","routine":"Solo uso profesional médico controlado.","benefits":["Verrugas comunes y plantares","Acción queratolítica y citotóxica","Elimina tejido hiperqueratósico"],"type":"bottle","volume":"30 ml"},
-{"name":"Karité + Alantoína + Urea + Aloe Vera + Mometasona","segments":["Piel sensible / atópica","Facial y corporal"],"skin":"Piel con resequedad, irritación y dermatitis sensibles a corticoides.","actives":"Manteca de karité, alantoína, urea, aloe vera y mometasona.","use":"Fórmula hidratante, emoliente y antiinflamatoria, indicada para pieles con resequedad, irritación y dermatitis sensibles a corticoides. Ayuda a aliviar el enrojecimiento, la picazón y la inflamación, favoreciendo la recuperación de la barrera cutánea.","routine":"Según indicación médica.","benefits":["Hidratante, emoliente y antiinflamatoria","Dermatitis sensible a corticoides","Refuerza la barrera cutánea"],"type":"bottle","volume":"60 ml"},
+{"name":"Karité + Alantoína + Urea + Aloe Vera + Mometasona","segments":["Piel sensible / atópica","Facial y corporal"],"skin":"Piel con resequedad, irritación y dermatitis sensibles a corticoides.","actives":"Manteca de karité, alantoína, urea, aloe vera y mometasona.","use":"Fórmula hidratante, emoliente y antiinflamatoria, indicada para pieles con resequedad, irritación y dermatitis sensibles a corticoides. Ayuda a aliviar el enrojecimiento, la picazón y la inflamación, favoreciendo la recuperación de la barrera cutánea.","routine":"Según indicación médica.","benefits":["Hidratante, emoliente y antiinflamatoria","Dermatitis sensible a corticoides","Refuerza la barrera cutánea"],"type":"tube","volume":"60 ml"},
 {"name":"Ac. Salicílico 27%","segments":["Facial y corporal"],"skin":"Uso profesional médico controlado (queratolítico).","actives":"Ácido salicílico 27%.","use":"Se usa para eliminar verrugas, callos y durezas de la piel mediante acción queratolítica.","routine":"Solo uso profesional médico controlado.","benefits":["Verrugas, callos y durezas","Acción queratolítica","Uso profesional controlado"],"type":"bottle","volume":"30 ml"}
 ];
-DERMOFARMA.forEach(o=>products.push({brand:"DermoFarma",...o,accent:palette[o.segments[0]]||"#3aa0a6"}));
+/* Imágenes de DermoFarma: el catálogo FM 2027 no trae fotos por producto (todas
+   son fórmulas magistrales en el mismo envase), así que se usan los tres envases
+   oficiales del catálogo: tubo, tarro y gotero. */
+const DERMOFARMA_IMG={jar:"img/dermofarma/tarro.png",tube:"img/dermofarma/tubo.png",bottle:"img/dermofarma/gotero.png"};
+DERMOFARMA.forEach(o=>products.push({brand:"DermoFarma",...o,image:DERMOFARMA_IMG[o.type]||"img/dermofarma/tubo.png",accent:palette[o.segments[0]]||"#3aa0a6"}));
 /* ===== MOSSUA · Skincare 100% ecuatoriano =====
    Catálogo 2026 (con precios impresos; sin talla impresa, por eso volume queda
    vacío y las tarjetas muestran «Consultar presentación»). */
@@ -2130,7 +2134,11 @@ const MOSSUA=[
 {"name":"Almond Silk Exfoliante Corporal","segments":["Facial y corporal"],"skin":"Todo tipo de piel del cuerpo.","actives":"Semillas de passiflora, aceite de almendra y aloe.","use":"Aplicar sobre la piel húmeda con movimientos suaves y enjuagar. Usar 2-3 veces por semana.","routine":"2-3 veces por semana.","benefits":["Remueve células muertas","Nutre mientras exfolia","Suavidad que se nota"],"type":"tube","volume":"","price":15.00},
 {"name":"Velo de Rosas","segments":["Hidratación / limpieza","Piel sensible / atópica"],"skin":"Todo tipo de piel; calma y fresca refresh.","actives":"Extracto de rosas y manzanilla.","use":"Aplicar tras la limpieza o a lo largo del día, con un algodón o directo sobre el rostro.","routine":"Mañana y noche.","benefits":["Hidrata, calma y prepara la piel","Refresca a lo largo del día","Mejora la absorción de la rutina"],"type":"spray","volume":"","price":15.00}
 ];
-MOSSUA.forEach(o=>products.push({brand:"Mossua",...o,accent:palette[o.segments[0]]||"#3aa0a6"}));
+/* Fotos oficiales del catálogo Mossua (descargadas del propio PDF público) y
+   presentaciones impresas en los envases. */
+const MOSSUA_IMG={"Clean Balance Jabón Líquido":"img/mossua/jabon.png","Clean Balance Foam":"img/mossua/foam.png","Celixir Células Madre Sérum":"img/mossua/celixir.png","Porefix Pads":"img/mossua/porefix.png","Iluminia Sérum":"img/mossua/iluminia.png","Eyewake Sérum":"img/mossua/eyewake.png","Beautycer Cream":"img/mossua/beautycream.png","Beautycer Vitalis":"img/mossua/vitalis.png","Hidromectant Pure":"img/mossua/pure.png","Urea Care 10":"img/mossua/ureacare.png","Hidromectant Sun SPF 90+":"img/mossua/sun.png","Rice Silk Exfoliante Facial":"img/mossua/ricesilk.png","Almond Silk Exfoliante Corporal":"img/mossua/almondsilk.png","Velo de Rosas":"img/mossua/velodereosas.png"};
+const MOSSUA_VOL={"Clean Balance Jabón Líquido":"250 ml","Clean Balance Foam":"150 ml","Celixir Células Madre Sérum":"30 ml","Iluminia Sérum":"30 ml","Eyewake Sérum":"15 ml","Beautycer Cream":"70 g","Beautycer Vitalis":"70 g","Hidromectant Pure":"400 g","Urea Care 10":"120 ml","Hidromectant Sun SPF 90+":"70 g","Almond Silk Exfoliante Corporal":"200 g","Velo de Rosas":"250 ml"};
+MOSSUA.forEach(o=>products.push({brand:"Mossua",...o,image:MOSSUA_IMG[o.name],volume:MOSSUA_VOL[o.name]||o.volume,accent:palette[o.segments[0]]||"#3aa0a6"}));
 
 /* ====== LABORATORIOS COMPLETADOS (v2) ======
    Formato por línea:  nombre | códigos de segmento | piel | activos | presentación | envase | [modo de uso] | [rutina] | [beneficios separados por ;]
@@ -4524,6 +4532,9 @@ function dropWrongImages(){
   const detalle=[];
   products.forEach(p=>{
     if(!p.image)return;
+    /* Los assets locales (img/…) son oficiales y asignados con intención: no se
+       descartan por repetición aunque el mismo envase sirva para varios productos. */
+    if(/^img\//.test(p.image))return;
     if(IMAGES_DESCARTADAS.has(p.image)||DOMINIO_SIN_IMAGENES.test(p.image)){delete p.image;porDominio++;return;}
     if(IMAGENES_NO_DESCARTABLES.test(p.image)){delete p.image;porGenerica++;return;}
     if(repeticiones.get(p.image)>=CUANTAS_VECES_SE_REPETE){
@@ -6071,6 +6082,18 @@ function placeholderImage(item){
 </svg>`;
   return "data:image/svg+xml;charset=UTF-8,"+encodeURIComponent(svg);
 }
+/* Si una foto falla al cargar se reintenta un par de veces antes de poner la
+   imagen referencial: una caída momentánea de red no debe dejar la tarjeta vacía. */
+function setProductImage(im,item,presentation=null,intentos=0){
+  if(!im)return;
+  im.referrerPolicy="no-referrer";
+  im.onerror=()=>{
+    if(intentos<2){setTimeout(()=>setProductImage(im,item,presentation,intentos+1),800);return;}
+    im.onerror=null;
+    im.src=placeholderImage(item);
+  };
+  im.src=imageOf(item,presentation);
+}
 /* Imagen de un producto: la foto real si existe; si no, la referencial. */
 function imageOf(item,presentation=null){
   const baseKey=item._visualKey||pkey(item);
@@ -6189,7 +6212,7 @@ function makeCard(item,presentation=null,extra=null){
     menu.append(editOption,eyeOption,deleteOption);card.appendChild(menu);
     edit.addEventListener("click",e=>{e.preventDefault();e.stopPropagation();document.querySelectorAll(".visual-card-menu.open").forEach(m=>{if(m!==menu)m.classList.remove("open")});menu.classList.toggle("open");});
   }
-  const im=card.querySelector("img");im.referrerPolicy="no-referrer";im.onerror=()=>{im.onerror=null;im.src=placeholderImage(item)};im.src=imageOf(item,presentation);
+  const im=card.querySelector("img");setProductImage(im,item,presentation);
   card.addEventListener("click",e=>{if(visualEditMode){e.preventDefault();e.stopPropagation();return;}const b=e.target.closest("button");if(b){e.stopPropagation();if(b.dataset.act==="add")addToCart(key,1);else if(b.dataset.act==="size")selectSize(item,b.dataset.size);else buyWA(key);return;}openModal(item,true,presentation);});
   card.addEventListener("keydown",e=>{if(e.target===card&&(e.key==="Enter"||e.key===" ")){e.preventDefault();if(!visualEditMode)openModal(item,true,presentation);}});
   return card;
@@ -6482,6 +6505,8 @@ const BRAND_LOGO_FILES={
   "Neutraderm":"https://skincare.com.ec/img/cms/Componentes/LOGOS%20DE%20MARCAS%20MODIFICADO/SKINCARE/logos%20horizontales/NEUTRADERM-8.png",
   "Dbullon":"https://www.tupeluqueriaonline.com/images/fabricantes/5.jpg",
   "Ducray":"https://images.seeklogo.com/logo-png/19/2/ducray-logo-png_seeklogo-196987.png",
+  "DermoFarma":"img/logo-dermofarma.png",
+  "Mossua":"img/logo-mossua.png",
   // URLs propias, verificadas que devuelven 200 OK y permiten carga cruzada.
   // Quedan supliendo las marcas que no tenían ícono en Google Favicons.
 };
@@ -6495,16 +6520,15 @@ function renderBrands(){
   grid.innerHTML=BRANDS.map(b=>{
     const c=products.filter(p=>p.stock!=="Agotado"&&p.availability!=="Agotado"&&p.brand===b).length;
     const domain=BRAND_BACKGROUNDS[b];
-    /* Un logo propio tiene prioridad: si el archivo falla NO se reintenta con un
+    /* Un logo propio tiene prioridad: si el archivo falla no se reintenta con un
        favicon, porque un archivo local jamas existira en el dominio y el
-       reintento terminaba borrando el logo correcto. */
+       reintento terminaba borrando el logo correcto. Lo que sí se hace es
+       reintentar un par de veces el propio recurso: una caída de red no debe
+       dejar la tarjeta vacía para el resto de la visita. */
     const propio=BRAND_LOGO_FILES[b];
     const src=propio||(domain?"https://www.google.com/s2/favicons?domain_url="+encodeURIComponent("https://"+domain)+"&sz=256":null);
-    const alFallar=propio
-      ?"this.onerror=null;this.parentElement.classList.add('brand-no-logo')"
-      :(domain?"if(!this.dataset.retry){this.dataset.retry='1';this.src='https://"+domain+"/favicon.ico'}else{this.parentElement.classList.add('brand-no-logo');this.remove()}"
-            :"this.onerror=null;this.parentElement.classList.add('brand-no-logo')");
-    const image=src?`<img class="brand-bg-img" src="${escapeHTML(src)}" alt="Logotipo de ${escapeHTML(b)}" loading="lazy" referrerpolicy="no-referrer" onerror="${alFallar}">`:"";
+    const alFallar="if(!this.dataset.n){this.dataset.n='1'}else{this.dataset.n=String(+this.dataset.n+1)}if(+this.dataset.n<3){var s=this.dataset.src;setTimeout(()=>{this.src=s+(s.indexOf('?')>-1?'&':'?')+'retry='+this.dataset.n;},600);return;}this.onerror=null;this.parentElement.classList.add('brand-no-logo')";
+    const image=src?`<img class="brand-bg-img" src="${escapeHTML(src)}" data-src="${escapeHTML(src)}" alt="Logotipo de ${escapeHTML(b)}" loading="lazy" referrerpolicy="no-referrer" onerror="${alFallar}">`:"";
     return `<button class="brand-card ${b===state.brand?"active":""}" data-brand="${escapeHTML(b)}" data-monogram="${brandInitials(b)}">${image}<span class="brand-monogram" aria-hidden="true">${brandInitials(b)}</span><strong>${escapeHTML(b)}</strong><small>${c?c+" productos disponibles":"Próximamente"}</small></button>`;}).join("");
   const list=document.getElementById("brandCountList");
   if(list)list.innerHTML=BRANDS.map(b=>{const c=products.filter(p=>p.stock!=="Agotado"&&p.availability!=="Agotado"&&p.brand===b).length;
@@ -6522,7 +6546,8 @@ function openModal(item,keep,selectedSize=null){
   const k=selectedSize&&item.sizes&&item.sizes.length>1?pkey(item)+"|"+selectedSize:ikey(item);
   const d=invData(getBranch(),k),[st,sc]=stockInfo(d);
   const img=document.getElementById("modalImage");
-  img.referrerPolicy="no-referrer";img.onerror=()=>{img.onerror=null;img.src=placeholderImage(item)};img.src=imageOf(item);img.alt=item.name;
+  setProductImage(img,item);
+  img.alt=item.name;
   document.getElementById("modalBrand").textContent=item.brand;
   document.getElementById("modalName").textContent=item.name;
   const qa=branchQty("Ambato",k),qp=branchQty("Pelileo",k);

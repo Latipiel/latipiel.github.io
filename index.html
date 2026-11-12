@@ -1921,6 +1921,18 @@ const VISUAL_NAME_FIX={
   "Sesderma|Acnises Gel Limpiador":"Acnises Gel Cream",
   "Sesderma|Acnises Emulsión Hidratante":"Atopises Moisturizing Cream"
 };
+/* URLs que ya sabemos muertas (servidor caído, 404/403, host inexistente) o
+   degradadas (miniaturas Google). Cualquier override — incluidos los por
+   presentación, que imageOf() lee al renderizar — pierde su `image`: la
+   tarjeta cae a la foto base/local en vez de una imagen rota. Precio/stock
+   se conservan. Es idempotente y se aplica en cada reaplicación (boot,
+   comprobarPreciosRemotos, visual editor). */
+const IMAGENES_MUERTAS=/dermashop\.ec|CALMIN_PDR|lasfragancias\.vtexassets|sweetcare\.com|chachifarma\.com|farmastock\.com|parafarmaciatusaludencasa|luquecosmetica\.com|pelumarkt\.com|skintoc\.com|pinkpharm\.al|dermo-3-600x600-1\.gif|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
+const IMAGENES_DEGRADADAS=/^https:\/\/encrypted-tbn0\.gstatic\.com\//i;
+function sanearOverrides(){
+  const ov=(catalogGlobalData&&catalogGlobalData.overrides)||{};
+  Object.keys(ov).forEach(k=>{const v=ov[k];if(v&&v.image&&(IMAGENES_MUERTAS.test(v.image)||IMAGENES_DEGRADADAS.test(v.image))) delete v.image;});
+}
 function readVisualOverrides(){
   const saved=catalogGlobalLoaded?(catalogGlobalData.overrides||{}):(function(){try{return JSON.parse(localStorage.getItem(VISUAL_OVERRIDES_KEY)||"{}")}catch(e){return {}}})();
   let out=null,fixes=0;
@@ -1950,7 +1962,7 @@ function applyImageFix(){
    aún no tenía ficha. Si se asignaran tal cual, pisarían los datos ya completados
    de este archivo, así que esos dos campos se descartan del override cuando no
    aportan texto real. El resto (precio, imagen, nombre...) sigue mandando el override. */
-function applyVisualOverrides(){const saved=readVisualOverrides();const ph=/Consultar ficha del fabricante|Consultar envase o ficha técnica|no especificad[oa]|presentaci[oó]n no especificada|Presentación: consultar/i;const real=v=>Array.isArray(v)?v.length>0:!!String(v==null?"":v).trim()&&!ph.test(String(v));products.forEach(p=>{const key=p.brand+"|"+p.name;/* La primera vez que se ve, "key" es la clave original del archivo: se
+function applyVisualOverrides(){sanearOverrides();const saved=readVisualOverrides();const ph=/Consultar ficha del fabricante|Consultar envase o ficha técnica|no especificad[oa]|presentaci[oó]n no especificada|Presentación: consultar/i;const real=v=>Array.isArray(v)?v.length>0:!!String(v==null?"":v).trim()&&!ph.test(String(v));products.forEach(p=>{const key=p.brand+"|"+p.name;/* La primera vez que se ve, "key" es la clave original del archivo: se
        conserva en _visualKey como ancla, porque applySesdermaIdentity() renombra
        el producto y sin este ancla la siguiente carga del catálogo dejaría de
        encontrar su override (y se quedaría sin imagen). */p._visualKey=p._visualKey||key;const data=saved[key]||saved[p._visualKey];if(!data)return;const clean={...data};if("actives" in clean&&!real(clean.actives))delete clean.actives;if("volume" in clean&&!real(clean.volume))delete clean.volume;Object.assign(p,clean);});applyImageFix();}
@@ -4803,20 +4815,10 @@ Object.keys(FOTOS_LOCALES).forEach(k => {
 function applyFotosLocales() {
   const generica = /dermo-3-600x600-1\.gif|\/tubo\.jpg(\?|$)|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
   const degradado = /^https:\/\/encrypted-tbn0\.gstatic\.com\//i;
-  const muerta = /dermashop\.ec|CALMIN_PDR|lasfragancias\.vtexassets|sweetcare\.com|chachifarma\.com|farmastock\.com|parafarmaciatusaludencasa|luquecosmetica\.com|pelumarkt\.com|skintoc\.com|pinkpharm\.al/i;
-  /* Además de la imagen base, limpiar también los overrides de Supabase que
-     traen imagen muerta — incluidos los por presentación (…|presentacion|100 ml),
-     que imageOf() lee en caliente al renderizar y devolvía la imagen rota/
-     referencial aunque el producto tuviera foto. Se borra solo el campo
-     image (se conserva precio/stock del override). */
-  const ov = (catalogGlobalData && catalogGlobalData.overrides) || {};
-  Object.keys(ov).forEach(k => {
-    const v = ov[k];
-    if (v && v.image && (generica.test(v.image) || degradado.test(v.image) || muerta.test(v.image))) delete v.image;
-  });
+  sanearOverrides(); // overrides muertos (base y por presentación)
   products.forEach(p => {
     const img = p.image || "";
-    const esMuerta = img && muerta.test(img);
+    const esMuerta = img && IMAGENES_MUERTAS.test(img);
     if (img && !generica.test(img) && !degradado.test(img) && !esMuerta) return;
     const hit = FOTOS_LOCALES_POR_CLAVE[nrm(p.brand + p.name)];
     if (hit) { p.image = hit; return; }

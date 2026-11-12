@@ -6258,7 +6258,7 @@ function selectSize(p,size){
   p.size=size;
   applyBranchData(getBranch());
   renderProducts();renderHome();
-  if(modalProduct===p&&document.getElementById("modalBackdrop").classList.contains("open"))openModal(p,true);
+  if(modalProduct===p&&document.getElementById("modalBackdrop").classList.contains("open"))openModal(p,true,p.size);
 }
 let modalProduct=null;
 /* Sucursales donde el producto tiene la marca pedida. Una promoción puede ser de
@@ -6639,7 +6639,10 @@ function openModal(item,keep,selectedSize=null){
   const k=selectedSize&&item.sizes&&item.sizes.length>1?pkey(item)+"|"+selectedSize:ikey(item);
   const d=invData(getBranch(),k),[st,sc]=stockInfo(d);
   const img=document.getElementById("modalImage");
-  setProductImage(img,item);
+  /* La ficha abierta usa la MISMA foto que la tarjeta de esa presentación:
+     si el administrador cambió la imagen de una talla concreta desde el panel,
+     el modal tiene que mostrar esa y no la foto base del producto. */
+  setProductImage(img,item,selectedSize);
   img.alt=item.name;
   document.getElementById("modalBrand").textContent=item.brand;
   document.getElementById("modalName").textContent=item.name;

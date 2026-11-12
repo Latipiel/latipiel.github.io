@@ -4734,6 +4734,46 @@ console.info("Catálogo conservado y combinado con Dermasoft", {
 /* Última revisión de las fotos, cuando ya están todas cargadas. */
 dropWrongImages();
 
+/* ===== FOTOS OFICIALES CONSERVADAS EN EL REPOSITORIO =====
+   Los productos cuyas únicas fotos online eran genéricas compartidas
+   (tubo "Producto bajo prescripción médica" / GIF Dermo 3 / Teen Derm K)
+   fueron purgados por dropWrongImages() y quedaban en «IMAGEN REFERENCIAL".
+   Aquí se les asigna la foto oficial del fabricante o de la farmacia que
+   los comercializa en Ecuador, todos como assets locales (img/…). */
+const FOTOS_LOCALES = {
+  "La Roche-Posay|Anthelios UVMune 400 Dermo-Pediatrics Crema FPS 50+": "img/larocheposay/anthelios-dp-crema.jpg",
+  "Bassa|Erysol Gel": "img/bassa/erysol-gel.jpg",
+  "Bassa|Hidrat 40 Crema": "img/bassa/hidrat-40-crema.jpg",
+  "Bassa|Retinoic con Aloe 0.05% Crema": "img/bassa/retinoic-aloe-005.jpg",
+  "Isispharma|Teen Derm Gel Limpiador Purificante": "img/isispharma/teen-derm-gel-limpiador.jpg",
+  "Isispharma|Teen Derm Solución Micelar Purificante": "img/isispharma/teen-derm-solucion-micelar.jpg",
+  "Isispharma|Teen Derm A-Pure Cuidado Intenso Anti-Imperfecciones": "img/isispharma/teen-derm-a-pure.jpg",
+  "Isispharma|Teen Derm K Concentrado Anti-Imperfecciones": "img/isispharma/teen-derm-k.jpg",
+  "Isispharma|ISISPHARMA TEEN DERM A PURE": "img/isispharma/teen-derm-a-pure.jpg",
+  "Bago|Ony Tec": "img/ein/ony-tec.png",
+  "Produderm|Dermo 3 Mascarilla Remineralizante de Arcillas": "img/produderm/dermo-3.jpg",
+  "Produderm|DERMO 3": "img/produderm/dermo-3.jpg"
+};
+const FOTOS_LOCALES_POR_CLAVE = {};
+Object.keys(FOTOS_LOCALES).forEach(k => {
+  const i = k.indexOf("|");
+  FOTOS_LOCALES_POR_CLAVE[nrm(k.slice(0, i) + k.slice(i + 1))] = FOTOS_LOCALES[k];
+});
+/* Se ejecuta DESPUÉS de applyVisualOverrides() y finalizeCatalog(), en bootInventory:
+   sustituye las fotos genéricas purgadas que algún override podría devolver y los
+   thumbnails degradantes de Google (encrypted-tbn0). No toca URLs buenas ni overrides
+   legítimos del editor. Si el producto no tiene local asignada, se queda igual. */
+function applyFotosLocales() {
+  const generica = /dermo-3-600x600-1\.gif|\/tubo\.jpg(\?|$)|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
+  const degradado = /^https:\/\/encrypted-tbn0\.gstatic\.com\//i;
+  products.forEach(p => {
+    const img = p.image || "";
+    if (img && !generica.test(img) && !degradado.test(img)) return;
+    const hit = FOTOS_LOCALES_POR_CLAVE[nrm(p.brand + p.name)];
+    if (hit) p.image = hit;
+  });
+}
+
 /* ===== CATÁLOGO CON UN SOLO PRECIO =====
    Se vacía el "precio anterior" que traía el CSV de Dermasoft para que ningún
    producto muestre de salida un tachado. El campo NO se elimina: sigue en el
@@ -7341,6 +7381,7 @@ initializeAdminFilters();
     const r=await loadBranchInventory();
     if(r.error) console.warn("No se pudo cargar el inventario remoto:",r.error);
   }
+  applyFotosLocales();
   applyBranchData(getBranch());
   renderProducts();renderBrands();renderCart();renderHome();renderRoutines();
   syncPricesButton();

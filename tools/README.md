@@ -5,6 +5,18 @@ Cada producto del catálogo tiene su propia página estática en `p/<id>.html`
 Eso es lo que Google indexa: si alguien busca "cleanance gel avène", el
 resultado puede ser la ficha exacta de ese producto.
 
+## IndexNow (aviso instantáneo a los buscadores)
+
+Al regenerar las fichas, el generador avisa a **Google, Bing y Yandex**
+mediante IndexNow (`api.indexnow.org`) con la lista de URLs, para que no
+dependan del rastreo del sitemap. La clave pública está en
+`tools/indexnow-key.txt` y se publica en la raíz del sitio
+(`https://latipiel.github.io/<clave>.txt`); IndexNow la valida contra esa
+dirección, por eso debe estar publicada antes de avisar.
+
+Si el aviso devuelve un error, las fichas se generan igual: el sitemap y el
+rastreo normal siguen funcionando.
+
 ## Flujo para actualizar las fichas
 
 ### Opción A — desde el panel de administración (un clic)

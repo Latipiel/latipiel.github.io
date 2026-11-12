@@ -249,7 +249,10 @@ async function avisarIndexNow(lista) {
   try {
     const r = await fetch("https://api.indexnow.org/indexnow", {
       method: "POST",
-      headers: { "Content-Type": "application/json; charset=utf-8" },
+      headers: {
+        "Content-Type": "application/json; charset=utf-8",
+        "User-Agent": "LatiPiel-SEO/1.0 (+https://latipiel.github.io)",
+      },
       body: JSON.stringify({
         host: "latipiel.github.io",
         key,
@@ -257,7 +260,8 @@ async function avisarIndexNow(lista) {
         urlList: lote,
       }),
     });
-    return `IndexNow: HTTP ${r.status} (${lote.length} URLs, clave en ${urlClave})`;
+    const cuerpo = await r.text().catch(() => "");
+    return `IndexNow: HTTP ${r.status}${cuerpo ? " (" + cuerpo.slice(0, 200) + ")" : ""} · ${lote.length} URLs avisadas · clave en ${urlClave}`;
   } catch (e) {
     return `IndexNow no se pudo enviar: ${e.message}`;
   }

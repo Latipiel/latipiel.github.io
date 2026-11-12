@@ -236,6 +236,39 @@ const sinSitemap = robots.replace(/^Sitemap:.*\n?/gm, "").replace(/\s*$/, "\n");
 writeFileSync(robotsPath,
   sinSitemap + `Sitemap: ${SITE}/sitemap-productos.xml\nSitemap: ${SITE}/sitemap.xml\n`, "utf8");
 
+/* Avisar a los buscadores (IndexNow: Google, Bing, Yandex) para que no
+   tengan que esperar al rastreo. Si la clave o el servicio fallan, el
+   proceso de generación no se interrumpe. */
+async function avisarIndexNow(lista) {
+  const rutaClave = join(RAIZ, "tools", "indexnow-key.txt");
+  if (!existsSync(rutaClave)) return "sin clave de IndexNow (no se avisa)";
+  const key = readFileSync(rutaClave, "utf8").trim();
+  if (!key) return "clave de IndexNow vacía";
+  const urlClave = `${SITE}/${key}.txt`;
+  const lote = lista.slice(0, 10000);
+  try {
+    const r = await fetch("https://api.indexnow.org/indexnow", {
+      method: "POST",
+      headers: { "Content-Type": "application/json; charset=utf-8" },
+      body: JSON.stringify({
+        host: "latipiel.github.io",
+        key,
+        keyLocation: urlClave,
+        urlList: lote,
+      }),
+    });
+    return `IndexNow: HTTP ${r.status} (${lote.length} URLs, clave en ${urlClave})`;
+  } catch (e) {
+    return `IndexNow no se pudo enviar: ${e.message}`;
+  }
+}
+const aviso = await avisarIndexNow([
+  `${SITE}/`,
+  `${SITE}/p/`,
+  ...productos.map(p => `${SITE}/p/${p.id}.html`),
+]);
+
 console.log(`Fichas generadas: ${escritas} en p/`);
 console.log(`Directorio: p/index.html`);
 console.log(`Sitemaps: sitemap-productos.xml y sitemap.xml (${urls.length} URLs, lastmod ${hoy})`);
+console.log(aviso);

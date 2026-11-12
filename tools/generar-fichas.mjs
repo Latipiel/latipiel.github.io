@@ -99,6 +99,7 @@ function ficha(p, id) {
 <title>${esc(p.name)}${vol ? " " + esc(vol) : ""} | ${esc(p.brand)} | Farmacia Dermatológica LatiPiel</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${url}">
+<link rel="sitemap" type="application/xml" title="Sitemap" href="${SITE}/sitemap.xml">
 <meta property="og:type" content="product">
 <meta property="og:site_name" content="Farmacia Dermatológica LatiPiel">
 <meta property="og:locale" content="es_EC">

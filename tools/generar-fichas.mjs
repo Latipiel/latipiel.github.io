@@ -99,7 +99,7 @@ function ficha(p, id) {
 <title>${esc(p.name)}${vol ? " " + esc(vol) : ""} | ${esc(p.brand)} | Farmacia Dermatológica LatiPiel</title>
 <meta name="description" content="${esc(desc)}">
 <link rel="canonical" href="${url}">
-<link rel="sitemap" type="application/xml" title="Sitemap" href="${SITE}/sitemap.xml">
+<link rel="sitemap" type="application/xml" title="Sitemap" href="${SITE}/sitemap-productos.xml">
 <meta property="og:type" content="product">
 <meta property="og:site_name" content="Farmacia Dermatológica LatiPiel">
 <meta property="og:locale" content="es_EC">
@@ -215,25 +215,27 @@ for (const f of readdirSync(DESTINO)) {
   if (!validas.has(f)) { unlinkSync(join(DESTINO, f)); borradas++; }
 }
 
+const hoy = new Date().toISOString().slice(0, 10);
 const urls = [
-  `<url><loc>${SITE}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,
-  `<url><loc>${SITE}/p/</loc><changefreq>weekly</changefreq><priority>0.6</priority></url>`,
-  ...productos.map(p => `<url><loc>${SITE}/p/${p.id}.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`),
+  `<url><loc>${SITE}/</loc><lastmod>${hoy}</lastmod><changefreq>daily</changefreq><priority>1.0</priority></url>`,
+  `<url><loc>${SITE}/p/</loc><lastmod>${hoy}</lastmod><changefreq>weekly</changefreq><priority>0.6</priority></url>`,
+  ...productos.map(p => `<url><loc>${SITE}/p/${p.id}.html</loc><lastmod>${hoy}</lastmod><changefreq>weekly</changefreq><priority>0.8</priority></url>`),
 ];
 /* El sitemap se deja en XML puro (sin hojas de estilo): es lo que Google
    espera. La versión legible para personas es p/index.html, con el listado
    de todos los productos enlazado a su ficha. */
-writeFileSync(join(RAIZ, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`, "utf8");
+const cuerpo = `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`;
+writeFileSync(join(RAIZ, "sitemap.xml"), cuerpo, "utf8");
+/* Segunda copia con otro nombre: si una URL de sitemap queda con un error
+   cacheado en Search Console, se envía esta (URL nueva = lectura limpia). */
+writeFileSync(join(RAIZ, "sitemap-productos.xml"), cuerpo, "utf8");
 
 const robotsPath = join(RAIZ, "robots.txt");
 const robots = existsSync(robotsPath) ? readFileSync(robotsPath, "utf8") : "";
-if (!/^Sitemap:/m.test(robots)) {
-  const base = robots.replace(/\s*$/, "\n");
-  writeFileSync(robotsPath, base + `Sitemap: ${SITE}/sitemap.xml\n`, "utf8");
-}
+const sinSitemap = robots.replace(/^Sitemap:.*\n?/gm, "").replace(/\s*$/, "\n");
+writeFileSync(robotsPath,
+  sinSitemap + `Sitemap: ${SITE}/sitemap-productos.xml\nSitemap: ${SITE}/sitemap.xml\n`, "utf8");
 
 console.log(`Fichas generadas: ${escritas} en p/`);
 console.log(`Directorio: p/index.html`);
-console.log(`Sitemap: sitemap.xml (${urls.length} URLs)`);
-console.log(`robots.txt: ${/^Sitemap:/m.test(readFileSync(robotsPath, "utf8")) ? "actualizado" : "ya tenía sitemap"}`);
+console.log(`Sitemaps: sitemap-productos.xml y sitemap.xml (${urls.length} URLs, lastmod ${hoy})`);

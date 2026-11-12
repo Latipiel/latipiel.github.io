@@ -4804,6 +4804,16 @@ function applyFotosLocales() {
   const generica = /dermo-3-600x600-1\.gif|\/tubo\.jpg(\?|$)|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
   const degradado = /^https:\/\/encrypted-tbn0\.gstatic\.com\//i;
   const muerta = /dermashop\.ec|CALMIN_PDR|lasfragancias\.vtexassets|sweetcare\.com|chachifarma\.com|farmastock\.com|parafarmaciatusaludencasa|luquecosmetica\.com|pelumarkt\.com|skintoc\.com|pinkpharm\.al/i;
+  /* Además de la imagen base, limpiar también los overrides de Supabase que
+     traen imagen muerta — incluidos los por presentación (…|presentacion|100 ml),
+     que imageOf() lee en caliente al renderizar y devolvía la imagen rota/
+     referencial aunque el producto tuviera foto. Se borra solo el campo
+     image (se conserva precio/stock del override). */
+  const ov = (catalogGlobalData && catalogGlobalData.overrides) || {};
+  Object.keys(ov).forEach(k => {
+    const v = ov[k];
+    if (v && v.image && (generica.test(v.image) || degradado.test(v.image) || muerta.test(v.image))) delete v.image;
+  });
   products.forEach(p => {
     const img = p.image || "";
     const esMuerta = img && muerta.test(img);

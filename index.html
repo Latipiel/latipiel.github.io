@@ -1927,7 +1927,7 @@ const VISUAL_NAME_FIX={
    tarjeta cae a la foto base/local en vez de una imagen rota. Precio/stock
    se conservan. Es idempotente y se aplica en cada reaplicación (boot,
    comprobarPreciosRemotos, visual editor). */
-const IMAGENES_MUERTAS=/dermashop\.ec|CALMIN_PDR|lasfragancias\.vtexassets|sweetcare\.com|chachifarma\.com|farmastock\.com|parafarmaciatusaludencasa|luquecosmetica\.com|pelumarkt\.com|skintoc\.com|pinkpharm\.al|dermo-3-600x600-1\.gif|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
+const IMAGENES_MUERTAS=/dermashop\.ec|CALMIN_PDR|lasfragancias\.vtexassets|sweetcare\.com|chachifarma\.com|farmastock\.com|parafarmaciatusaludencasa|luquecosmetica\.com|pelumarkt\.com|skintoc\.com|pinkpharm\.al|navir\.es|BAGOMICINA-40-10230416-L\.png|dermo-3-600x600-1\.gif|J-?PRODUCTOS-BAJO-PRESCRIPCION-MEDICA\.jpg|TEEN-DERM-K\.jpg(\?|$)/i;
 const IMAGENES_DEGRADADAS=/^https:\/\/encrypted-tbn0\.gstatic\.com\//i;
 function sanearOverrides(){
   const ov=(catalogGlobalData&&catalogGlobalData.overrides)||{};
@@ -4798,7 +4798,8 @@ const FOTOS_LOCALES = {
   "Dbullon|Crema Anticelulítica Calor Activo": "img/dbullon/crema-calor-activo.jpg",
   "Dbullon|Crema G-3 Colágeno para Rostro, Cuello y Escote": "img/dbullon/crema-g3-colageno.jpg",
   "Dermedic|Normacne Crema Complemento de Farmacoterapia": "img/dermedic/normacne-farmacoterapia.png",
-  "Dermedic|Linum Emolient Baby Mantequilla Intensiva": "img/dermedic/linum-baby-mantequilla.jpg"
+  "Dermedic|Linum Emolient Baby Mantequilla Intensiva": "img/dermedic/linum-baby-mantequilla.jpg",
+  "Bago|Bagomicina 50MG": "img/bago/bagomicina.png"
 };
 const FOTOS_LOCALES_POR_CLAVE = {};
 Object.keys(FOTOS_LOCALES).forEach(k => {

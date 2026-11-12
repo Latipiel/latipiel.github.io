@@ -7,6 +7,15 @@ resultado puede ser la ficha exacta de ese producto.
 
 ## Flujo para actualizar las fichas
 
+### Opción A — desde el panel de administración (un clic)
+En **Administración → "🧩 Actualizar fichas SEO (ZIP)"**:
+1. El navegador genera el catálogo vivo y descarga `fichas-seo.zip`.
+2. Descomprime el ZIP y haz doble clic en **APLICAR.bat**: copia el catálogo al
+   repositorio, regenera `p/`, `sitemap.xml` y `robots.txt`, y hace commit + push
+   a `main` (usa el git que viene con GitHub Desktop).
+3. GitHub Pages publica el sitio en 1–3 minutos.
+
+### Opción B — desde el terminal
 1. **Volcar el catálogo vivo** (productos, precios y fotos de como los ve el
    visitante, incluidos los cambios hechos en el panel de administración):
    abre `https://latipiel.github.io/?dump=1` → se descarga `catalogo.json`.
@@ -19,7 +28,9 @@ resultado puede ser la ficha exacta de ese producto.
    ```
 
    Escribe `p/*.html`, `p/index.html` (directorio de todos los productos),
-   `sitemap.xml` y actualiza `robots.txt`.
+   `sitemap.xml` y actualiza `robots.txt`. Las fichas de productos que ya no
+   están en el catálogo se borran (si no, Google indexaría productos
+   withdrawn).
 
 3. **Publicar**: `git add -A && git commit -m "Actualiza fichas SEO" && git push`.
 

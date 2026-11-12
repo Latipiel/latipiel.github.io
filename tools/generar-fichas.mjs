@@ -16,7 +16,7 @@
  * El identificador <id> se calcula igual que productId() en index.html,
  * para que el enlace index.html?p=<id> abra justo ese producto.
  */
-import { readFileSync, writeFileSync, mkdirSync, existsSync } from "node:fs";
+import { readFileSync, writeFileSync, mkdirSync, existsSync, readdirSync, unlinkSync } from "node:fs";
 import { join, dirname } from "node:path";
 import { fileURLToPath } from "node:url";
 
@@ -204,6 +204,15 @@ for (const p of productos) {
   escritas++;
 }
 writeFileSync(join(DESTINO, "index.html"), directorio(productos), "utf8");
+
+/* Limpiar las fichas de productos que ya no están en el catálogo: si se
+   quedan, Google indexa páginas de productos que ya no se venden. */
+const validas = new Set(productos.map(p => p.id + ".html"));
+let borradas = 0;
+for (const f of readdirSync(DESTINO)) {
+  if (f === "index.html" || !f.endsWith(".html")) continue;
+  if (!validas.has(f)) { unlinkSync(join(DESTINO, f)); borradas++; }
+}
 
 const urls = [
   `<url><loc>${SITE}/</loc><changefreq>daily</changefreq><priority>1.0</priority></url>`,

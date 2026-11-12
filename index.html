@@ -1634,6 +1634,7 @@ html body #catalogo{margin-top:14px!important}
       <button class="admin-side-btn" id="adminImportCsv" type="button">📥 Importar productos desde CSV</button>
       <button class="admin-side-btn" id="adminExport" type="button">Exportar datos</button>
       <button class="admin-side-btn primary" id="adminExportSupabase" type="button" title="Sube a Supabase, de una sola vez: los precios de todas las presentaciones para Ambato y Pelileo, los cambios visuales del catálogo (ocultos, eliminados, ediciones y productos añadidos) y el ajuste de precios visibles. No toca las cantidades ni los distintivos ya guardados.">⬆ Exportar datos a Supabase</button>
+      <button class="admin-side-btn" id="adminGenerarFichas" type="button" title="Genera las fichas estáticas de cada producto (las que Google indexa) y descarga un ZIP con el catálogo actualizado y un script que las regenera y publica solo.">🧩 Actualizar fichas SEO (ZIP)</button>
       <button class="admin-side-btn" id="adminRestoreDeleted" type="button">♻ Recuperar productos eliminados</button>
       <button class="admin-side-btn" id="adminRestoreHidden" type="button">👁 Productos ocultos</button>
       <button class="admin-side-btn danger" id="adminResetBranch" type="button">Restablecer sucursal</button>
@@ -7262,6 +7263,120 @@ function csvPlantilla(){
        mantiene lo suyo y sigue mandando «Guardar cambios»);
      * como el precio visible sale de la propia tabla, editar en el panel, guardar
        y volver a exportar no pisa lo que acabas de guardar. */
+/* ===== ACTUALIZAR LAS FICHAS SEO (desde el panel) =====
+   Las fichas de producto que indexa Google son archivos estáticos del repo
+   (p/<id>.html + sitemap.xml). Este botón descarga un ZIP con el catálogo
+   vivo y un script que regenera esas fichas y las publica, para no tener
+   que hacerlo a mano en el terminal. */
+const REPO_LOCAL="C:\\Users\\Lenovo\\Documents\\GitHub\\latipiel.github.io";
+const GIT_LOCAL="C:\\Users\\Lenovo\\AppData\\Local\\GitHubDesktop\\app-3.6.7\\resources\\app\\git\\cmd\\git.exe";
+function crc32Tabla(){
+  if(crc32Tabla.t)return crc32Tabla.t;
+  const t=new Uint32Array(256);
+  for(let n=0;n<256;n++){let c=n;for(let k=0;k<8;k++)c=(c&1)?(0xEDB88320^(c>>>1)):(c>>>1);t[n]=c>>>0;}
+  crc32Tabla.t=t;return t;
+}
+function crc32(buf){
+  const t=crc32Tabla();let crc=0xFFFFFFFF;
+  for(let i=0;i<buf.length;i++)crc=t[(crc^buf[i])&0xFF]^(crc>>>8);
+  return (crc^0xFFFFFFFF)>>>0;
+}
+/* ZIP sin compresión (método "store"): lo justo para un archivo de texto. */
+function zipStore(files){
+  const enc=new TextEncoder(),chunks=[],central=[];
+  const dosTime=0,dosDate=0x5721;let offset=0;
+  for(const f of files){
+    const name=enc.encode(f.name),data=f.data,crc=crc32(data);
+    const local=new Uint8Array(30+name.length),lv=new DataView(local.buffer);
+    lv.setUint32(0,0x04034b50,true);lv.setUint16(4,20,true);lv.setUint16(6,0x0800,true);lv.setUint16(8,0,true);
+    lv.setUint16(10,dosTime,true);lv.setUint16(12,dosDate,true);
+    lv.setUint32(14,crc,true);lv.setUint32(18,data.length,true);lv.setUint32(22,data.length,true);
+    lv.setUint16(26,name.length,true);lv.setUint16(28,0,true);
+    local.set(name,30);chunks.push(local,data);
+    const cd=new Uint8Array(46+name.length),cv=new DataView(cd.buffer);
+    cv.setUint32(0,0x02014b50,true);cv.setUint16(4,20,true);cv.setUint16(6,20,true);cv.setUint16(8,0x0800,true);cv.setUint16(10,0,true);
+    cv.setUint16(12,dosTime,true);cv.setUint16(14,dosDate,true);
+    cv.setUint32(16,crc,true);cv.setUint32(20,data.length,true);cv.setUint32(24,data.length,true);
+    cv.setUint16(28,name.length,true);cv.setUint32(42,offset,true);
+    cd.set(name,46);central.push(cd);
+    offset+=local.length+data.length;
+  }
+  const cdSize=central.reduce((s,c)=>s+c.length,0);
+  const end=new Uint8Array(22),ev=new DataView(end.buffer);
+  ev.setUint32(0,0x06054b50,true);ev.setUint16(8,files.length,true);ev.setUint16(10,files.length,true);
+  ev.setUint32(12,cdSize,true);ev.setUint32(16,offset,true);
+  return new Blob([...chunks,...central,end],{type:"application/zip"});
+}
+function catalogoParaFichas(){
+  return products.map(p=>({
+    brand:p.brand,name:p.name,volume:p.volume||"",image:p.image||"",
+    segments:p.segments||[],skin:p.skin||"",actives:p.actives||"",use:p.use||"",
+    routine:p.routine||"",benefits:Array.isArray(p.benefits)?p.benefits:[],
+    summary:p.summary||"",description:p.description||"",url:p.url||"",
+    stock:p.stock||"",availability:p.availability||""
+  }));
+}
+function adminGenerarFichasSEO(){
+  const btn=document.getElementById("adminGenerarFichas");
+  const textoOriginal=btn?btn.textContent:"";
+  if(btn){btn.disabled=true;btn.textContent="Generando…";}
+  try{
+    const enc=new TextEncoder();
+    const bat=[
+      "@echo off",
+      "rem Regenera las fichas SEO de producto y las publica en GitHub Pages.",
+      "setlocal",
+      "set REPO="+REPO_LOCAL,
+      "set GIT="+GIT_LOCAL,
+      "cd /d \"%REPO%\"",
+      "if not exist \"%REPO%\\tools\\generar-fichas.mjs\" (",
+      "  echo No encuentro el repositorio en %REPO%.",
+      "  echo Edita la ruta dentro de APLICAR.bat de este ZIP y vuelve a ejecutarlo.",
+      "  pause & exit /b 1",
+      ")",
+      "copy /Y \"%~dp0data\\catalogo.json\" \"%REPO%\\data\\catalogo.json\" >nul",
+      "node \"%REPO%\\tools\\generar-fichas.mjs\"",
+      "if errorlevel 1 (echo No se pudieron generar las fichas. & pause & exit /b 1)",
+      "\"%GIT%\" add p sitemap.xml robots.txt data",
+      "\"%GIT%\" commit -m \"Actualiza fichas SEO de producto\"",
+      "\"%GIT%\" push origin main",
+      "echo.",
+      "echo Listo: las fichas se publicaran en GitHub Pages en unos minutos.",
+      "pause",
+    ].join("\r\n");
+    const leeme=[
+      "ACTUALIZAR LAS FICHAS SEO DE LATIPIEL",
+      "",
+      "1) Descomprime este ZIP en cualquier carpeta.",
+      "2) Haz doble clic en APLICAR.bat.",
+      "   - copia el catalogo actualizado en el repositorio",
+      "   - regenera p/*.html, p/index.html, sitemap.xml y robots.txt",
+      "   - sube el cambio a GitHub (main)",
+      "3) Espera 1-3 minutos: GitHub Pages publica el sitio.",
+      "4) En Google Search Console, vuelve a enviar el sitemap si aparecia con error.",
+      "",
+      "Si APLICAR.bat dice que no encuentra el repositorio, abre el archivo",
+      "con el Bloc de notas, cambia la linea  set REPO=...  por la ruta real",
+      "del repositorio y vuelve a ejecutarlo.",
+      "",
+      "El repositorio tiene que tener Node.js instalado (node --version).",
+    ].join("\r\n");
+    const zip=zipStore([
+      {name:"data/catalogo.json",data:enc.encode(JSON.stringify(catalogoParaFichas()))},
+      {name:"APLICAR.bat",data:enc.encode(bat)},
+      {name:"LEEME.txt",data:enc.encode(leeme)},
+    ]);
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(zip);a.download="fichas-seo.zip";
+    document.body.appendChild(a);a.click();a.remove();
+    toast("ZIP descargado: descomprime y ejecuta APLICAR.bat");
+  }catch(e){
+    console.error(e);
+    toast("No se pudo generar el ZIP: "+e.message);
+  }finally{
+    if(btn){btn.disabled=false;btn.textContent=textoOriginal;}
+  }
+}
 async function exportAllToSupabase(){
   if(!SUPABASE_CONFIGURED){toast("Supabase no está configurado");return;}
   if(!adminSession){toast("Inicia sesión como administrador para exportar a Supabase");return;}
@@ -7639,6 +7754,7 @@ document.getElementById("csvBranch").addEventListener("change",csvPintar);
   });
 })();
 document.getElementById("adminExportSupabase").addEventListener("click",exportAllToSupabase);
+document.getElementById("adminGenerarFichas").addEventListener("click",adminGenerarFichasSEO);
 document.getElementById("adminRefresh").addEventListener("click",async()=>{await loadBranchInventory();applyBranchData(adminBranch);renderProducts();renderBrands();renderHome();renderCart();adminRows();toast("✔ Tarea realizada: datos actualizados");});
 document.getElementById("adminPrices").addEventListener("click",togglePrices);
 syncPricesButton();

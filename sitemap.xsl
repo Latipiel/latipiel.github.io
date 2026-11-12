@@ -23,7 +23,7 @@
       <body>
         <h1>Sitemap del catálogo</h1>
         <p class="sub">Farmacia Dermatológica LatiPiel · Ambato y Pelileo (Ecuador) ·
-          <span class="count"><xsl:value-of select="count(urlset/url)"/> URLs</xsl:value-of> indexadas.</p>
+          <span class="count"><xsl:number value="count(urlset/url)" format="1"/></span> URLs indexadas.</p>
         <table>
           <tr><th>URL</th><th>Frecuencia</th><th>Prioridad</th></tr>
           <xsl:for-each select="urlset/url">

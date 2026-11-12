@@ -218,6 +218,8 @@ h1{margin:0;max-width:680px;font-size:clamp(38px,5vw,76px);font-weight:900;line-
 .stock-line .stock{margin-top:0;font-size:14px}
 .stock-line b{color:var(--ink);font-weight:900}
 .buy-row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:16px}
+.modal-ficha-link{display:inline-block;margin-top:12px;font-size:12px;font-weight:800;color:var(--teal);text-decoration:underline;text-underline-offset:3px}
+.modal-ficha-link:hover{color:var(--teal-dark)}
 .qty-step{display:flex;align-items:center;gap:2px;padding:4px;border:2px solid var(--pink-deep);border-radius:999px;background:#fff}
 .qty-step button{width:36px;height:36px;border:0;border-radius:50%;background:var(--pink);color:var(--teal-dark);font-size:20px;font-weight:900;line-height:1;cursor:pointer;transition:.15s}
 .qty-step button:hover{background:var(--pink-deep)}
@@ -6659,6 +6661,13 @@ function openModal(item,keep,selectedSize=null){
       <button class="btn-add" id="mAdd">Agregar al carrito</button>
     </div>`;
   document.querySelectorAll("#modalBuy .size-btn").forEach(b=>{b.onclick=()=>{selectSize(item,b.dataset.size);};});
+  /* Enlace a la ficha estática del producto (la que indexa Google). */
+  const ficha=document.createElement("a");
+  ficha.className="modal-ficha-link";
+  ficha.href="p/"+productId(item.brand,item.name)+".html";
+  ficha.target="_blank";ficha.rel="noopener";
+  ficha.textContent="Ver ficha completa de "+item.name;
+  document.getElementById("modalBuy").appendChild(ficha);
   document.getElementById("mMinus").onclick=()=>{modalQty=Math.max(1,modalQty-1);document.getElementById("mQty").textContent=modalQty;};
   document.getElementById("mPlus").onclick=()=>{modalQty++;document.getElementById("mQty").textContent=modalQty;};
   document.getElementById("mAdd").onclick=()=>addToCart(k,modalQty);
@@ -6671,6 +6680,52 @@ function openModal(item,keep,selectedSize=null){
   document.body.style.overflow="hidden";
 }
 function closeModal(){document.getElementById("modalBackdrop").classList.remove("open");document.body.style.overflow="";modalProduct=null;}
+
+/* ===== ENLACE DIRECTO A UN PRODUCTO (para SEO) =====
+   Cada producto tiene su propia ficha estática en /p/<id>.html (las genera
+   tools/generar-fichas.mjs). Desde ahí se llega al catálogo con
+   index.html?p=<id> y esta función abre justo ese producto: la tarjeta se
+   deja a la vista y se abre su ficha. El identificador se calcula igual que
+   en el generador, por eso ambos deben usar productId(marca,nombre). */
+function productId(brand,name){
+  const base=(brand+" "+name).toLowerCase().normalize("NFD").replace(/[\u0300-\u036f]/g,"").replace(/[^a-z0-9]+/g,"-").replace(/^-+|-+$/g,"").slice(0,64)||"producto";
+  let h=0;const s=brand+"|"+name;
+  for(let i=0;i<s.length;i++)h=(Math.imul(h,31)+s.charCodeAt(i))>>>0;
+  return base+"-"+(h%1679616).toString(36);
+}
+function abrirProductoDesdeUrl(){
+  try{
+    const q=new URLSearchParams(location.search);
+    const id=q.get("p");if(!id)return;
+    const p=products.find(x=>productId(x.brand,x.name)===id);
+    if(!p)return;
+    const card=[...document.querySelectorAll(".product-card")].find(c=>{
+      const h3=c.querySelector("h3"),br=c.querySelector(".card-brand");
+      return h3&&br&&h3.textContent===p.name&&br.textContent===p.brand;
+    });
+    if(card)card.scrollIntoView({block:"center"});
+    const sz=q.get("sz");
+    const uso=sz&&p.sizes&&p.sizes.includes(sz)?sz:(p.sizes&&p.sizes.length>1?p.sizes[0]:null);
+    openModal(p,false,uso);
+  }catch(e){}
+}
+/* Volcado del catálogo para regenerar las fichas: se abre el sitio con
+   ?dump=1 y se descarga data/catalogo.json (lo usa el generador). */
+function exportarCatalogoSiPideDump(){
+  try{
+    if(!/[?&]dump=1(&|$)/.test(location.search))return;
+    const datos=products.map(p=>({
+      brand:p.brand,name:p.name,volume:p.volume||"",image:p.image||"",
+      segments:p.segments||[],skin:p.skin||"",actives:p.actives||"",use:p.use||"",
+      routine:p.routine||"",benefits:Array.isArray(p.benefits)?p.benefits:[],
+      summary:p.summary||"",description:p.description||"",url:p.url||"",
+      stock:p.stock||"",availability:p.availability||""
+    }));
+    const a=document.createElement("a");
+    a.href=URL.createObjectURL(new Blob([JSON.stringify(datos)],{type:"application/json"}));
+    a.download="catalogo.json";document.body.appendChild(a);a.click();a.remove();
+  }catch(e){}
+}
 
 /* ===== ADMINISTRACIÓN SEGURA ===== */
 /* Devuelve una fila por PRESENTACIÓN: los productos con varias tallas generan
@@ -7446,6 +7501,8 @@ initializeAdminFilters();
   renderProducts();renderBrands();renderCart();renderHome();renderRoutines();
   syncPricesButton();
   iniciarRefrescoPrecios();
+  abrirProductoDesdeUrl();
+  exportarCatalogoSiPideDump();
 })();
 
 document.getElementById("cartBtn").addEventListener("click",openCart);

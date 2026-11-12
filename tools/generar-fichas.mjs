@@ -221,7 +221,7 @@ const urls = [
   ...productos.map(p => `<url><loc>${SITE}/p/${p.id}.html</loc><changefreq>weekly</changefreq><priority>0.8</priority></url>`),
 ];
 writeFileSync(join(RAIZ, "sitemap.xml"),
-  `<?xml version="1.0" encoding="UTF-8"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`, "utf8");
+  `<?xml version="1.0" encoding="UTF-8"?>\n<?xml-stylesheet type="text/xsl" href="/sitemap.xsl"?>\n<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n${urls.join("\n")}\n</urlset>\n`, "utf8");
 
 const robotsPath = join(RAIZ, "robots.txt");
 const robots = existsSync(robotsPath) ? readFileSync(robotsPath, "utf8") : "";
